@@ -7,7 +7,7 @@ import ProfileStats from '@/components/profile/ProfileStats';
 import ProfileBio from '@/components/profile/ProfileBio';
 import ProfileActions from '@/components/profile/ProfileActions';
 import SupportCard from '@/components/support/SupportCard';
-import { Utensils, BabyFace, Wallet } from 'lucide-react';
+import { Utensils, Baby, Wallet, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
@@ -78,7 +78,7 @@ const Profile = () => {
               />
               
               <SupportCard
-                icon={BabyFace}
+                icon={Baby}
                 title="Find Care"
                 onClick={() => console.log('Find Care clicked')}
               />
