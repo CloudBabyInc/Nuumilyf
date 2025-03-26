@@ -41,8 +41,11 @@ const Header = ({
           <h1 className="text-xl font-bold">{title}</h1>
         ) : (
           <Link to="/" className="flex items-center">
-            <h1 className="text-2xl font-bold text-nuumi-pink">nuumi</h1>
-            <span className="text-xs text-muted-foreground ml-1 mt-2">...For every mom</span>
+            <img 
+              src="/lovable-uploads/3f006055-b9a4-4322-9a83-427e9aa8b18b.png" 
+              alt="nuumi - For every mom" 
+              className="h-9 w-auto"
+            />
           </Link>
         )}
       </div>
