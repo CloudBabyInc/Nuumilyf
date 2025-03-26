@@ -1,28 +1,48 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Redirect to feed page
-    navigate('/feed');
+    const checkSession = async () => {
+      setLoading(true);
+      const { data } = await supabase.auth.getSession();
+      
+      if (data.session) {
+        // Logged in, redirect to feed
+        navigate('/feed');
+      } else {
+        // Not logged in, redirect to auth
+        navigate('/auth');
+      }
+      setLoading(false);
+    };
+    
+    checkSession();
   }, [navigate]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center animate-fade-in">
-        <div className="flex flex-col items-center justify-center">
-          <img 
-            src="/lovable-uploads/3f006055-b9a4-4322-9a83-427e9aa8b18b.png" 
-            alt="nuumi - For every mom" 
-            className="w-64 md:w-80 max-w-full h-auto mb-4"
-          />
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center animate-fade-in">
+          <div className="flex flex-col items-center justify-center">
+            <img 
+              src="/lovable-uploads/3f006055-b9a4-4322-9a83-427e9aa8b18b.png" 
+              alt="nuumi - For every mom" 
+              className="w-64 md:w-80 max-w-full h-auto mb-4"
+            />
+            <p className="text-muted-foreground animate-pulse">Loading...</p>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 };
 
 export default Index;
