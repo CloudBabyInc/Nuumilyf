@@ -16,8 +16,16 @@ const Index = () => {
         // Logged in, redirect to feed
         navigate('/feed');
       } else {
-        // Not logged in, redirect to auth
-        navigate('/auth');
+        // Not logged in, check if first time user
+        const hasShownOnboarding = localStorage.getItem('hasShownOnboarding');
+        
+        if (hasShownOnboarding) {
+          // Not first time, redirect to auth
+          navigate('/auth');
+        } else {
+          // First time, redirect to onboarding
+          navigate('/onboarding');
+        }
       }
       setLoading(false);
     };
