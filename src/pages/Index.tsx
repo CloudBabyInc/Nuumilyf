@@ -19,7 +19,7 @@ const Index = () => {
         // Not logged in, check if first time user
         const hasShownOnboarding = localStorage.getItem('hasShownOnboarding');
         
-        if (hasShownOnboarding) {
+        if (hasShownOnboarding === 'true') {
           // Not first time, redirect to auth
           navigate('/auth');
         } else {

@@ -82,6 +82,11 @@ const Auth = () => {
     }
   };
 
+  const resetOnboarding = () => {
+    localStorage.removeItem('hasShownOnboarding');
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -179,6 +184,16 @@ const Auth = () => {
                 onClick={() => setIsSignUp(!isSignUp)}
               >
                 {isSignUp ? 'Sign In' : 'Sign Up'}
+              </button>
+            </p>
+            
+            <p className="mt-4 text-xs text-muted-foreground">
+              <button
+                type="button"
+                className="text-blue-500 hover:underline"
+                onClick={resetOnboarding}
+              >
+                See onboarding again
               </button>
             </p>
           </div>

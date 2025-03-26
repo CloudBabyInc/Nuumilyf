@@ -13,12 +13,16 @@ const Onboarding = () => {
     if (currentSlide < onboardingData.length - 1) {
       setCurrentSlide(currentSlide + 1);
     } else {
+      // Set flag that onboarding has been shown
+      localStorage.setItem('hasShownOnboarding', 'true');
       // Navigate to auth page when completed
       navigate('/auth');
     }
   };
 
   const handleSkip = () => {
+    // Set flag that onboarding has been shown
+    localStorage.setItem('hasShownOnboarding', 'true');
     // Navigate to auth page
     navigate('/auth');
   };
