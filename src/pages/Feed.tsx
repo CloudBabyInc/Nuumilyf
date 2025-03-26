@@ -50,40 +50,53 @@ const Feed = () => {
     queryFn: async () => {
       const now = new Date().toISOString();
       
-      const { data, error } = await supabase
+      // First fetch stories
+      const { data: storiesData, error: storiesError } = await supabase
         .from('stories')
         .select(`
           id,
           image_url,
           caption,
           created_at,
-          profiles:user_id (
-            id,
-            display_name,
-            username,
-            avatar_url
-          )
+          user_id
         `)
         .lt('expires_at', now)
         .order('created_at', { ascending: false });
         
-      if (error) {
-        console.error('Error fetching stories:', error);
-        throw error;
+      if (storiesError) {
+        console.error('Error fetching stories:', storiesError);
+        throw storiesError;
       }
       
-      return data.map(story => ({
-        id: story.id,
-        user: {
-          id: story.profiles.id,
-          name: story.profiles.display_name || story.profiles.username,
-          username: story.profiles.username,
-          avatar: story.profiles.avatar_url
-        },
-        imageUrl: story.image_url,
-        caption: story.caption,
-        createdAt: story.created_at
-      })) as StoryItem[];
+      // For each story, fetch the related profile
+      const storiesWithProfiles = await Promise.all(storiesData.map(async (story) => {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, display_name, username, avatar_url')
+          .eq('id', story.user_id)
+          .single();
+          
+        if (profileError) {
+          console.error('Error fetching profile for story:', profileError);
+          return null;
+        }
+        
+        return {
+          id: story.id,
+          user: {
+            id: profileData.id,
+            name: profileData.display_name || profileData.username,
+            username: profileData.username,
+            avatar: profileData.avatar_url
+          },
+          imageUrl: story.image_url,
+          caption: story.caption,
+          createdAt: story.created_at
+        };
+      }));
+      
+      // Filter out any null results from errors
+      return storiesWithProfiles.filter(Boolean) as StoryItem[];
     },
     enabled: !!session,
   });
@@ -92,7 +105,7 @@ const Feed = () => {
   const { data: posts, isLoading: postsLoading } = useQuery({
     queryKey: ['posts'],
     queryFn: async () => {
-      // Get posts with author profile info
+      // Get posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
@@ -100,13 +113,7 @@ const Feed = () => {
           content,
           image_url,
           created_at,
-          profiles:user_id (
-            id,
-            display_name,
-            username,
-            avatar_url,
-            is_verified
-          )
+          user_id
         `)
         .order('created_at', { ascending: false });
         
@@ -115,15 +122,29 @@ const Feed = () => {
         throw postsError;
       }
       
-      // Get likes count for each post
-      const postsWithCounts = await Promise.all(postsData.map(async (post) => {
+      // For each post, fetch the related profile and counts
+      const postsWithProfilesAndCounts = await Promise.all(postsData.map(async (post) => {
+        // Get profile for the post
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, display_name, username, avatar_url, is_verified')
+          .eq('id', post.user_id)
+          .single();
+          
+        if (profileError) {
+          console.error('Error fetching profile for post:', profileError);
+          return null;
+        }
+        
         // Get likes count
         const { count: likesCount, error: likesError } = await supabase
           .from('likes')
           .select('id', { count: 'exact', head: true })
           .eq('post_id', post.id);
           
-        if (likesError) console.error('Error fetching likes count:', likesError);
+        if (likesError) {
+          console.error('Error fetching likes count:', likesError);
+        }
         
         // Get comments count
         const { count: commentsCount, error: commentsError } = await supabase
@@ -131,7 +152,9 @@ const Feed = () => {
           .select('id', { count: 'exact', head: true })
           .eq('post_id', post.id);
           
-        if (commentsError) console.error('Error fetching comments count:', commentsError);
+        if (commentsError) {
+          console.error('Error fetching comments count:', commentsError);
+        }
         
         // Get reposts count
         const { count: repostsCount, error: repostsError } = await supabase
@@ -139,7 +162,9 @@ const Feed = () => {
           .select('id', { count: 'exact', head: true })
           .eq('post_id', post.id);
           
-        if (repostsError) console.error('Error fetching reposts count:', repostsError);
+        if (repostsError) {
+          console.error('Error fetching reposts count:', repostsError);
+        }
         
         // Check if current user liked the post
         let isLiked = false;
@@ -151,7 +176,9 @@ const Feed = () => {
             .eq('user_id', session.user.id)
             .maybeSingle();
             
-          if (likeError) console.error('Error fetching like status:', likeError);
+          if (likeError) {
+            console.error('Error fetching like status:', likeError);
+          }
           isLiked = !!likeData;
         }
         
@@ -161,11 +188,11 @@ const Feed = () => {
           image_url: post.image_url,
           created_at: post.created_at,
           author: {
-            id: post.profiles.id,
-            name: post.profiles.display_name || post.profiles.username,
-            username: post.profiles.username,
-            avatar_url: post.profiles.avatar_url,
-            is_verified: post.profiles.is_verified
+            id: profileData.id,
+            name: profileData.display_name || profileData.username,
+            username: profileData.username,
+            avatar_url: profileData.avatar_url,
+            is_verified: profileData.is_verified
           },
           likes_count: likesCount || 0,
           comments_count: commentsCount || 0,
@@ -174,7 +201,8 @@ const Feed = () => {
         };
       }));
       
-      return postsWithCounts as PostType[];
+      // Filter out any null results from errors
+      return postsWithProfilesAndCounts.filter(Boolean) as PostType[];
     },
     enabled: !!session
   });
