@@ -16,7 +16,7 @@ const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
 }) => {
   return (
     <div className="min-h-screen flex flex-col justify-end items-center relative animate-fade-in">
-      {/* Background image with blur */}
+      {/* Background image - fully visible */}
       {imagePath && (
         <div className="absolute inset-0 z-0">
           <img 
@@ -24,7 +24,9 @@ const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
             alt=""
             className="w-full h-full object-cover object-center"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/30 backdrop-blur-sm"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent">
+            {/* Subtle gradient to ensure text readability */}
+          </div>
         </div>
       )}
       

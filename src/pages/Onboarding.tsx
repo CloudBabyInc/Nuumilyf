@@ -47,7 +47,7 @@ const Onboarding = () => {
 
       {/* Bottom controls */}
       <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 z-10">
-        {currentSlide === 3 ? (
+        {isLastSlide ? (
           <>
             <Button 
               className="w-full bg-primary hover:bg-primary/90 font-bold text-lg rounded-full py-6 mb-4"
