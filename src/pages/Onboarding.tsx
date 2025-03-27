@@ -36,27 +36,9 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Top status bar */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center px-4 py-2">
-        <div className="bg-red-600 text-white px-4 py-1 rounded-full text-sm font-bold">
-          10:20
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="flex space-x-0.5">
-            <div className="w-1 h-3 bg-gray-400 rounded"></div>
-            <div className="w-1 h-3 bg-gray-400 rounded"></div>
-            <div className="w-1 h-3 bg-gray-400 rounded"></div>
-            <div className="w-1 h-3 bg-gray-400 rounded"></div>
-          </div>
-          <span className="text-gray-300 font-medium ml-1">LTE</span>
-          <div className="text-yellow-400 font-bold">30%</div>
-        </div>
-      </div>
-
       {/* Current slide */}
       <OnboardingSlide
         key={currentSlide}
-        image={slide.image}
         title={slide.title}
         description={slide.description}
         emoji={slide.emoji}
@@ -67,14 +49,14 @@ const Onboarding = () => {
         {currentSlide === 2 ? (
           <>
             <Button 
-              className="w-full bg-nuumi-pink hover:bg-nuumi-pink/90 font-bold text-lg rounded-full py-6 mb-4"
+              className="w-full bg-primary hover:bg-primary/90 font-bold text-lg rounded-full py-6 mb-4"
               onClick={handleNext}
             >
               Sign Up
             </Button>
             <Button 
               variant="outline" 
-              className="w-full border-nuumi-pink text-nuumi-pink hover:bg-nuumi-pink/10 font-bold text-lg rounded-full py-6"
+              className="w-full border-primary text-primary hover:bg-primary/10 font-bold text-lg rounded-full py-6"
               onClick={handleSkip}
             >
               Log In
@@ -82,7 +64,7 @@ const Onboarding = () => {
           </>
         ) : (
           <Button 
-            className="w-full bg-nuumi-pink hover:bg-nuumi-pink/90 font-bold text-lg rounded-full py-6"
+            className="w-full bg-primary hover:bg-primary/90 font-bold text-lg rounded-full py-6"
             onClick={handleNext}
           >
             {isLastSlide ? 'Get Started' : 'Next'}
@@ -97,7 +79,7 @@ const Onboarding = () => {
               onClick={() => goToSlide(index)}
               className={`w-2 h-2 rounded-full transition-all ${
                 currentSlide === index 
-                  ? 'w-8 bg-nuumi-pink' 
+                  ? 'w-8 bg-primary' 
                   : 'bg-gray-300'
               }`}
               aria-label={`Go to slide ${index + 1}`}
