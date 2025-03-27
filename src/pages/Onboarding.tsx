@@ -42,6 +42,7 @@ const Onboarding = () => {
         title={slide.title}
         description={slide.description}
         emoji={slide.emoji}
+        imagePath={slide.imagePath}
       />
 
       {/* Bottom controls */}
@@ -67,7 +68,7 @@ const Onboarding = () => {
             className="w-full bg-primary hover:bg-primary/90 font-bold text-lg rounded-full py-6"
             onClick={handleNext}
           >
-            {isLastSlide ? 'Get Started' : 'Next'}
+            {slide.buttonText || (isLastSlide ? 'Get Started' : 'Next')}
           </Button>
         )}
 
