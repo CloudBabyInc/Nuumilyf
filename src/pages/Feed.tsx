@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -31,7 +30,6 @@ interface PostType {
 const Feed = () => {
   const [session, setSession] = useState<any>(null);
 
-  // Check for session on mount
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -44,13 +42,11 @@ const Feed = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch stories
   const { data: stories, isLoading: storiesLoading } = useQuery({
     queryKey: ['stories'],
     queryFn: async () => {
       const now = new Date().toISOString();
       
-      // First fetch stories
       const { data: storiesData, error: storiesError } = await supabase
         .from('stories')
         .select(`
@@ -68,7 +64,6 @@ const Feed = () => {
         throw storiesError;
       }
       
-      // For each story, fetch the related profile
       const storiesWithProfiles = await Promise.all(storiesData.map(async (story) => {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -95,17 +90,14 @@ const Feed = () => {
         };
       }));
       
-      // Filter out any null results from errors
       return storiesWithProfiles.filter(Boolean) as StoryItem[];
     },
     enabled: !!session,
   });
 
-  // Fetch posts
   const { data: posts, isLoading: postsLoading } = useQuery({
     queryKey: ['posts'],
     queryFn: async () => {
-      // Get posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
@@ -122,9 +114,7 @@ const Feed = () => {
         throw postsError;
       }
       
-      // For each post, fetch the related profile and counts
       const postsWithProfilesAndCounts = await Promise.all(postsData.map(async (post) => {
-        // Get profile for the post
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('id, display_name, username, avatar_url, is_verified')
@@ -136,7 +126,6 @@ const Feed = () => {
           return null;
         }
         
-        // Get likes count
         const { count: likesCount, error: likesError } = await supabase
           .from('likes')
           .select('id', { count: 'exact', head: true })
@@ -146,7 +135,6 @@ const Feed = () => {
           console.error('Error fetching likes count:', likesError);
         }
         
-        // Get comments count
         const { count: commentsCount, error: commentsError } = await supabase
           .from('comments')
           .select('id', { count: 'exact', head: true })
@@ -156,7 +144,6 @@ const Feed = () => {
           console.error('Error fetching comments count:', commentsError);
         }
         
-        // Get reposts count
         const { count: repostsCount, error: repostsError } = await supabase
           .from('reposts')
           .select('id', { count: 'exact', head: true })
@@ -166,7 +153,6 @@ const Feed = () => {
           console.error('Error fetching reposts count:', repostsError);
         }
         
-        // Check if current user liked the post
         let isLiked = false;
         if (session?.user?.id) {
           const { data: likeData, error: likeError } = await supabase
@@ -201,13 +187,11 @@ const Feed = () => {
         };
       }));
       
-      // Filter out any null results from errors
       return postsWithProfilesAndCounts.filter(Boolean) as PostType[];
     },
     enabled: !!session
   });
 
-  // Handle post actions
   const handleLike = async (postId: string) => {
     if (!session) {
       toast.error('Please sign in to like posts');
@@ -219,7 +203,6 @@ const Feed = () => {
     
     try {
       if (post.isLiked) {
-        // Unlike the post
         const { error } = await supabase
           .from('likes')
           .delete()
@@ -228,7 +211,6 @@ const Feed = () => {
           
         if (error) throw error;
       } else {
-        // Like the post
         const { error } = await supabase
           .from('likes')
           .insert({
@@ -250,7 +232,6 @@ const Feed = () => {
       return;
     }
     console.log(`Comment on post ${postId}`);
-    // Implementation for opening comment modal would go here
   };
 
   const handleRepost = async (postId: string) => {
@@ -278,7 +259,6 @@ const Feed = () => {
 
   const handleShare = (postId: string) => {
     console.log(`Share post ${postId}`);
-    // Implementation for native share would go here
     if (navigator.share) {
       navigator.share({
         title: 'Check out this post on nuumi',
@@ -290,10 +270,9 @@ const Feed = () => {
     }
   };
 
-  // Handle no auth state
   if (!session && !postsLoading && !storiesLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background pb-24">
         <Header />
         
         <div className="max-w-md mx-auto px-4 mt-4 text-center">
@@ -308,10 +287,9 @@ const Feed = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
       <Header />
       
-      {/* Stories Row */}
       <div className="max-w-md mx-auto">
         <StoriesRow 
           stories={stories || []} 
@@ -322,7 +300,6 @@ const Feed = () => {
       
       <div className="max-w-md mx-auto px-4">
         {postsLoading ? (
-          // Skeleton loading state for posts
           Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="bg-card rounded-xl p-4 mb-3">
               <div className="flex items-start mb-3">

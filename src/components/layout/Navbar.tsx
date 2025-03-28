@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { Home, User, PlusCircle, MessageCircle } from 'lucide-react';
+import { Home, MessageCircle, PlusCircle, User, BookOpen, MessageSquareHeart, ShoppingBag } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 const Navbar = () => {
   const location = useLocation();
@@ -10,8 +11,8 @@ const Navbar = () => {
 
   const navItems = [
     { icon: Home, label: 'Home', path: '/' },
-    { icon: MessageCircle, label: 'Chats', path: '/chats' },
-    { icon: PlusCircle, label: 'Create', path: '/create' },
+    { icon: MessageSquareHeart, label: 'Chats', path: '/chats' },
+    { icon: ShoppingBag, label: 'Create', path: '/create' },
     { icon: User, label: 'Profile', path: '/profile' },
   ];
 
@@ -20,9 +21,9 @@ const Navbar = () => {
   }, [location.pathname]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card/70 backdrop-blur-xl border-t border-border z-50 px-2 pb-2 pt-2 animate-slide-up">
-      <div className="max-w-md mx-auto">
-        <div className="flex items-center justify-around bg-muted rounded-full p-1">
+    <div className="fixed bottom-0 left-0 right-0 flex justify-center pb-6 pt-2 z-50 pointer-events-none">
+      <nav className="max-w-xs mx-auto pointer-events-auto">
+        <div className="flex items-center justify-around bg-card/90 backdrop-blur-xl border border-border/40 shadow-lg rounded-full px-3 py-2 animate-slide-up">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.path;
@@ -31,27 +32,42 @@ const Navbar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={cn(
-                  "flex flex-col items-center justify-center py-2 px-4 rounded-full transition-all duration-300",
-                  isActive ? "text-nuumi-pink" : "text-muted-foreground"
-                )}
+                className="flex flex-col items-center justify-center relative px-4"
                 onClick={() => setActiveTab(item.path)}
               >
                 <div className={cn(
-                  "relative flex items-center justify-center transition-transform duration-300",
-                  isActive ? "scale-110" : "scale-100"
+                  "relative flex items-center justify-center transition-all duration-300",
+                  isActive ? "text-nuumi-pink scale-110" : "text-muted-foreground scale-100 hover:text-foreground/80"
                 )}>
-                  <Icon size={24} />
-                  {item.path === '/create' && (
-                    <div className="absolute inset-0 bg-nuumi-pink rounded-full blur-md opacity-20 animate-pulse"></div>
+                  {isActive && (
+                    <motion.div 
+                      layoutId="navIndicator"
+                      className="absolute inset-0 bg-nuumi-pink/10 rounded-full -m-2 w-10 h-10"
+                      initial={false}
+                      transition={{ type: "spring", duration: 0.5 }}
+                    />
                   )}
+                  <Icon 
+                    size={24} 
+                    strokeWidth={isActive ? 2.5 : 2}
+                    className={cn(
+                      "transition-all duration-300",
+                      isActive && "drop-shadow-[0_0_3px_rgba(255,105,180,0.6)]"
+                    )}
+                  />
                 </div>
+                <span className={cn(
+                  "text-[10px] mt-1 font-medium transition-all",
+                  isActive ? "opacity-100 text-nuumi-pink" : "opacity-70"
+                )}>
+                  {item.label}
+                </span>
               </Link>
             );
           })}
         </div>
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 };
 
