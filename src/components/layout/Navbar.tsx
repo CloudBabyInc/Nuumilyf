@@ -90,7 +90,7 @@ const Navbar = () => {
   const [activeTab, setActiveTab] = useState('/');
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   
-  // Define navItems with correct order - Home, Plus button, Chats, Profile
+  // Define navItems with correct order - Home, Chats, Action button, Profile
   const navItems = [
     { icon: Home, label: 'Home', path: '/feed' },
     { icon: MessageSquareHeart, label: 'Chats', path: '/chats' },
@@ -143,7 +143,7 @@ const Navbar = () => {
         </AnimatePresence>
 
         <div className="flex items-center justify-around bg-card/90 backdrop-blur-xl border border-border/40 shadow-lg rounded-full px-3 py-2 animate-slide-up">
-          {/* Home button */}
+          {/* Home button (1st) */}
           <NavItem
             key={navItems[0].path}
             icon={navItems[0].icon}
@@ -153,24 +153,32 @@ const Navbar = () => {
             onClick={handleSetActiveTab}
           />
           
-          {/* Action Button in the Middle */}
+          {/* Chats button (2nd) */}
+          <NavItem
+            key={navItems[1].path}
+            icon={navItems[1].icon}
+            label={navItems[1].label}
+            path={navItems[1].path}
+            isActive={activeTab === navItems[1].path}
+            onClick={handleSetActiveTab}
+          />
+          
+          {/* Action Button (3rd) */}
           <ActionButton 
             onClick={toggleActionMenu} 
             isActive={activeTab === '/create'} 
             isOpen={actionMenuOpen}
           />
           
-          {/* Chat and Profile buttons */}
-          {navItems.slice(1).map((item) => (
-            <NavItem
-              key={item.path}
-              icon={item.icon}
-              label={item.label}
-              path={item.path}
-              isActive={activeTab === item.path}
-              onClick={handleSetActiveTab}
-            />
-          ))}
+          {/* Profile button (4th) */}
+          <NavItem
+            key={navItems[2].path}
+            icon={navItems[2].icon}
+            label={navItems[2].label}
+            path={navItems[2].path}
+            isActive={activeTab === navItems[2].path}
+            onClick={handleSetActiveTab}
+          />
         </div>
       </nav>
     </div>
