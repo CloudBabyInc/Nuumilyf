@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
-import Navbar from '@/components/layout/Navbar';
 import Post from '@/components/shared/Post';
 import StoriesRow from '@/components/story/StoriesRow';
 import { supabase } from '@/integrations/supabase/client';
@@ -280,8 +279,6 @@ const Feed = () => {
           <p className="text-muted-foreground mb-4">Sign in to see posts from other moms</p>
           {/* Auth buttons would go here */}
         </div>
-        
-        <Navbar />
       </div>
     );
   }
@@ -347,8 +344,6 @@ const Feed = () => {
           </div>
         )}
       </div>
-      
-      <Navbar />
     </div>
   );
 };
