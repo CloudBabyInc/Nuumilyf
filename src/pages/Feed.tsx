@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -75,6 +76,13 @@ const Feed = () => {
           return null;
         }
         
+        // Determine media type based on file extension
+        const mediaType = story.image_url && (
+          story.image_url.endsWith('.mp4') || 
+          story.image_url.endsWith('.mov') || 
+          story.image_url.endsWith('.webm')
+        ) ? 'video' : 'image';
+        
         return {
           id: story.id,
           user: {
@@ -83,7 +91,10 @@ const Feed = () => {
             username: profileData.username,
             avatar: profileData.avatar_url
           },
-          imageUrl: story.image_url,
+          media: [{
+            type: mediaType,
+            url: story.image_url
+          }],
           caption: story.caption,
           createdAt: story.created_at
         };
@@ -292,6 +303,7 @@ const Feed = () => {
           stories={stories || []} 
           isLoading={storiesLoading} 
           className="mb-4 mt-2"
+          currentUserId={session?.user?.id}
         />
       </div>
       

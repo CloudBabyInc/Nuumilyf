@@ -1,24 +1,31 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StoryCircle from './StoryCircle';
 import StoryViewer from './StoryViewer';
+import StoryCreation from './StoryCreation';
 import { StoryItem } from './Story';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface StoriesRowProps {
   stories: StoryItem[];
   isLoading?: boolean;
   className?: string;
+  currentUserId?: string | null;
 }
 
 const StoriesRow: React.FC<StoriesRowProps> = ({
   stories,
   isLoading = false,
-  className
+  className,
+  currentUserId
 }) => {
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const queryClient = useQueryClient();
   
   // Group stories by user
   const storiesByUser = stories.reduce<Record<string, StoryItem[]>>((acc, story) => {
@@ -47,10 +54,36 @@ const StoriesRow: React.FC<StoriesRowProps> = ({
     setActiveStoryIndex(null);
   };
 
+  // Open story creation
+  const handleCreateStory = () => {
+    setIsCreating(true);
+  };
+
+  // Handle story creation success
+  const handleStoryCreationSuccess = () => {
+    // Invalidate stories query to fetch the latest stories
+    queryClient.invalidateQueries({ queryKey: ['stories'] });
+  };
+
   return (
     <div className={cn("relative", className)}>
       <div className="overflow-x-auto pb-2 hide-scrollbar">
         <div className="flex space-x-4 px-4">
+          {/* "Add Story" circle for logged in users */}
+          {currentUserId && (
+            <div 
+              className="flex flex-col items-center space-y-1 cursor-pointer"
+              onClick={handleCreateStory}
+            >
+              <div className="rounded-full bg-muted flex items-center justify-center w-14 h-14 border-2 border-dashed border-primary/50">
+                <PlusCircle className="text-primary" size={24} />
+              </div>
+              <span className="text-xs text-center text-foreground truncate w-16">
+                Add Story
+              </span>
+            </div>
+          )}
+
           {isLoading ? (
             // Skeleton loading state
             Array.from({ length: 5 }).map((_, i) => (
@@ -79,6 +112,14 @@ const StoriesRow: React.FC<StoriesRowProps> = ({
           stories={storiesByUser[latestUserStories[activeStoryIndex].user.id] || []}
           initialStoryIndex={0}
           onClose={handleCloseStoryViewer}
+        />
+      )}
+
+      {/* Story Creation */}
+      {isCreating && (
+        <StoryCreation
+          onClose={() => setIsCreating(false)}
+          onSuccess={handleStoryCreationSuccess}
         />
       )}
     </div>

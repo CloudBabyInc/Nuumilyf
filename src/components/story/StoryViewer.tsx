@@ -14,21 +14,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   onClose
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialStoryIndex);
-
-  // Auto advance through stories
-  useEffect(() => {
-    if (stories.length === 0) return;
-    
-    const timer = setTimeout(() => {
-      if (currentIndex < stories.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-      } else {
-        onClose();
-      }
-    }, 5000);
-    
-    return () => clearTimeout(timer);
-  }, [currentIndex, stories.length, onClose]);
+  const [isPaused, setIsPaused] = useState(false);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -39,12 +25,26 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         setCurrentIndex(prev => prev + 1);
       } else if (e.key === 'Escape') {
         onClose();
+      } else if (e.key === ' ') { // Space bar to toggle pause
+        setIsPaused(prev => !prev);
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, stories.length, onClose]);
+
+  // Handle document visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setIsPaused(true);
+      }
+    };
+    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
 
   if (stories.length === 0) return null;
 
