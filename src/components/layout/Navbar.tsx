@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { Home, MessageCircle, PlusCircle, User, BookOpen, MessageSquareHeart, ShoppingBag } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Home, MessageSquareHeart, ShoppingBag, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -16,7 +16,7 @@ interface NavItemProps {
 const NavItem = ({ icon: Icon, label, path, isActive, onClick }: NavItemProps) => (
   <Link
     to={path}
-    className="flex flex-col items-center justify-center relative px-4"
+    className="flex flex-col items-center justify-center relative px-10" // Increased px from 4 to 10 for wider spacing
     onClick={() => onClick(path)}
   >
     <div className={cn(
@@ -68,7 +68,7 @@ const Navbar = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 flex justify-center pb-6 pt-2 z-50 pointer-events-none">
-      <nav className="max-w-xs mx-auto pointer-events-auto">
+      <nav className="max-w-md w-full mx-auto pointer-events-auto">
         <div className="flex items-center justify-around bg-card/90 backdrop-blur-xl border border-border/40 shadow-lg rounded-full px-3 py-2 animate-slide-up">
           {navItems.map((item) => (
             <NavItem

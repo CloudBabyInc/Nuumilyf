@@ -13,13 +13,23 @@ import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
 import Navbar from "./components/layout/Navbar";
 
-// Create a wrapper component that uses router hooks and passes data to the Navbar
-const NavbarWithRouter = () => {
+// Create a wrapper component that conditionally renders the Navbar
+const ConditionalNavbar = () => {
   const location = useLocation();
-  return <Navbar />;
+  const pathname = location.pathname;
+  
+  // Only show navbar on these routes
+  const showNavbarRoutes = ['/', '/feed', '/chats', '/create', '/profile'];
+  
+  // Check if the current route should display navbar
+  const shouldShowNavbar = showNavbarRoutes.some(route => 
+    pathname === route || (route !== '/' && pathname.startsWith(route + '/'))
+  );
+  
+  return shouldShowNavbar ? <Navbar /> : null;
 };
 
-// Routes with Navbar
+// Routes with conditional Navbar
 const AppRoutes = () => {
   return (
     <>
@@ -34,7 +44,7 @@ const AppRoutes = () => {
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <NavbarWithRouter />
+      <ConditionalNavbar />
     </>
   );
 };
