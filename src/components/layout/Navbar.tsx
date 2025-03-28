@@ -90,7 +90,7 @@ const Navbar = () => {
   const [activeTab, setActiveTab] = useState('/');
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   
-  // Define navItems
+  // Define navItems with correct order - Home, Plus button, Chats, Profile
   const navItems = [
     { icon: Home, label: 'Home', path: '/feed' },
     { icon: MessageSquareHeart, label: 'Chats', path: '/chats' },
@@ -143,16 +143,15 @@ const Navbar = () => {
         </AnimatePresence>
 
         <div className="flex items-center justify-around bg-card/90 backdrop-blur-xl border border-border/40 shadow-lg rounded-full px-3 py-2 animate-slide-up">
-          {navItems.slice(0, 1).map((item) => (
-            <NavItem
-              key={item.path}
-              icon={item.icon}
-              label={item.label}
-              path={item.path}
-              isActive={activeTab === item.path}
-              onClick={handleSetActiveTab}
-            />
-          ))}
+          {/* Home button */}
+          <NavItem
+            key={navItems[0].path}
+            icon={navItems[0].icon}
+            label={navItems[0].label}
+            path={navItems[0].path}
+            isActive={activeTab === navItems[0].path}
+            onClick={handleSetActiveTab}
+          />
           
           {/* Action Button in the Middle */}
           <ActionButton 
@@ -161,6 +160,7 @@ const Navbar = () => {
             isOpen={actionMenuOpen}
           />
           
+          {/* Chat and Profile buttons */}
           {navItems.slice(1).map((item) => (
             <NavItem
               key={item.path}
