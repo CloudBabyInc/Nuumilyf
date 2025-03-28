@@ -12,6 +12,8 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
 import Navbar from "./components/layout/Navbar";
+import Marketplace from "./pages/Marketplace";
+import CreatePost from "./pages/CreatePost";
 
 // Create a wrapper component that conditionally renders the Navbar
 const ConditionalNavbar = () => {
@@ -19,7 +21,7 @@ const ConditionalNavbar = () => {
   const pathname = location.pathname;
   
   // Only show navbar on these routes
-  const showNavbarRoutes = ['/', '/feed', '/chats', '/create', '/profile'];
+  const showNavbarRoutes = ['/feed', '/chats', '/profile', '/marketplace', '/create'];
   
   // Check if the current route should display navbar
   const shouldShowNavbar = showNavbarRoutes.some(route => 
@@ -40,7 +42,8 @@ const AppRoutes = () => {
         <Route path="/auth" element={<Auth />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/chats" element={<Feed />} />
-        <Route path="/create" element={<Feed />} />
+        <Route path="/create" element={<CreatePost />} />
+        <Route path="/marketplace" element={<Marketplace />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

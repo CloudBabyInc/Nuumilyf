@@ -13,7 +13,7 @@ const Index = () => {
       const { data } = await supabase.auth.getSession();
       
       if (data.session) {
-        // Logged in, redirect to feed
+        // Logged in, always redirect to feed
         navigate('/feed');
       } else {
         // Not logged in, check if first time user
