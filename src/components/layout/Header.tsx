@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Bell, Sun } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Bell, Sun, MessageSquareHeart } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -23,12 +23,22 @@ const Header = ({
   className,
   rightContent
 }: HeaderProps) => {
+  const navigate = useNavigate();
+  
+  const handleBackClick = () => {
+    if (onBackClick) {
+      onBackClick();
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
     <header className={cn("bg-background px-4 py-3 flex items-center justify-between sticky top-0 z-40 animate-fade-in", className)}>
       <div className="flex items-center">
         {showBack && (
           <button 
-            onClick={onBackClick} 
+            onClick={handleBackClick} 
             className="mr-2 flex items-center justify-center text-foreground w-8 h-8 rounded-full hover:bg-secondary transition-colors"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -58,6 +68,10 @@ const Header = ({
             <button className="w-9 h-9 flex items-center justify-center text-foreground rounded-full hover:bg-secondary transition-colors">
               <Sun size={22} />
             </button>
+            
+            <Link to="/chats" className="w-9 h-9 flex items-center justify-center text-foreground rounded-full hover:bg-secondary transition-colors">
+              <MessageSquareHeart size={22} />
+            </Link>
             
             <button className="w-9 h-9 flex items-center justify-center text-foreground rounded-full hover:bg-secondary transition-colors relative">
               <Bell size={22} />

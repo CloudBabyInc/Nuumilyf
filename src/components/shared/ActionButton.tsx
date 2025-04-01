@@ -36,13 +36,13 @@ const ActionButton = ({
   const sizeClasses = {
     sm: 'text-xs px-3 py-2 space-x-1',
     md: 'text-sm px-4 py-2 space-x-2',
-    lg: 'text-base px-5 py-3 space-x-3'
+    lg: 'w-14 h-14 rounded-full'
   };
 
   const iconSizes = {
     sm: 14,
     md: 18,
-    lg: 22
+    lg: 24
   };
 
   return (
@@ -58,7 +58,7 @@ const ActionButton = ({
       onClick={onClick}
     >
       <Icon size={iconSizes[size]} className={isActive ? 'text-nuumi-pink' : ''} />
-      <span>{label}</span>
+      {label && <span className="ml-2">{label}</span>}
       {count !== undefined && (
         <span className="ml-1 text-xs bg-nuumi-pink text-white rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
           {count}
