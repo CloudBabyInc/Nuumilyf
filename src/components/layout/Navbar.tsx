@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Home, Plus, User, ShoppingBag, PlusCircle } from 'lucide-react';
+import { Home, Plus, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -52,7 +52,7 @@ const NavItem = ({ icon: Icon, label, path, isActive, onClick }: NavItemProps) =
 
 const Navbar = () => {
   // Use this for non-router environments or fallback to '/' when not in a Router context
-  const [activeTab, setActiveTab] = useState('/');
+  const [activeTab, setActiveTab] = useState('/feed');
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   
   // Define navItems with home and profile only
@@ -74,27 +74,12 @@ const Navbar = () => {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 flex flex-col items-center pb-6 pt-2 z-50 pointer-events-none">
-      {/* Floating Action Button - Positioned above the navbar */}
-      <div className="pointer-events-auto mb-4">
-        <ActionButton
-          icon={Plus}
-          label=""
-          onClick={toggleActionMenu}
-          className={cn(
-            "bg-nuumi-pink text-white shadow-lg transform transition-transform duration-300",
-            actionMenuOpen && "rotate-45"
-          )}
-          variant="primary"
-          size="lg"
-        />
-      </div>
-      
+    <div className="fixed bottom-0 left-0 right-0 flex flex-col items-center pb-2 z-50 pointer-events-none">
       {/* Action Menu Popup */}
       <AnimatePresence>
         {actionMenuOpen && (
           <motion.div 
-            className="absolute bottom-24 flex space-x-4"
+            className="absolute bottom-20 flex space-x-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
@@ -105,7 +90,13 @@ const Navbar = () => {
               className="bg-card shadow-lg rounded-full p-3 flex flex-col items-center pointer-events-auto"
               onClick={() => setActionMenuOpen(false)}
             >
-              <ShoppingBag className="text-nuumi-pink" size={24} />
+              <div className="bg-card shadow-inner p-2 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-nuumi-pink">
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                  <path d="M3 6h18"></path>
+                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+              </div>
               <span className="text-[10px] mt-1 font-medium">Marketplace</span>
             </Link>
             <Link 
@@ -113,7 +104,13 @@ const Navbar = () => {
               className="bg-card shadow-lg rounded-full p-3 flex flex-col items-center pointer-events-auto"
               onClick={() => setActionMenuOpen(false)}
             >
-              <PlusCircle className="text-nuumi-pink" size={24} />
+              <div className="bg-card shadow-inner p-2 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-nuumi-pink">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 8v8"></path>
+                  <path d="M8 12h8"></path>
+                </svg>
+              </div>
               <span className="text-[10px] mt-1 font-medium">Add Post</span>
             </Link>
           </motion.div>
@@ -121,7 +118,7 @@ const Navbar = () => {
       </AnimatePresence>
 
       <nav className="max-w-md w-full mx-auto pointer-events-auto">
-        <div className="flex items-center justify-around bg-card/90 backdrop-blur-xl border border-border/40 shadow-lg rounded-full px-8 py-2 animate-slide-up">
+        <div className="relative flex items-center justify-around bg-card/90 backdrop-blur-xl border border-border/40 shadow-lg rounded-full px-8 py-3">
           {/* Home button */}
           <NavItem
             key={navItems[0].path}
@@ -132,8 +129,21 @@ const Navbar = () => {
             onClick={handleSetActiveTab}
           />
           
-          {/* Empty div for spacing where action button would be */}
-          <div className="w-12" />
+          {/* Center Action Button with Groove */}
+          <div className="relative -mt-5 px-3">
+            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-16 h-16 bg-card rounded-full border border-border/40 -z-10"></div>
+            <ActionButton
+              icon={Plus}
+              label=""
+              onClick={toggleActionMenu}
+              className={cn(
+                "bg-nuumi-pink text-white shadow-md transform transition-transform duration-300",
+                actionMenuOpen && "rotate-45"
+              )}
+              variant="primary"
+              size="lg"
+            />
+          </div>
           
           {/* Profile button */}
           <NavItem
