@@ -22,27 +22,27 @@ const NavItem = ({ icon: Icon, label, path, isActive, onClick }: NavItemProps) =
   >
     <div className={cn(
       "relative flex items-center justify-center transition-all duration-300",
-      isActive ? "text-nuumi-pink scale-110" : "text-muted-foreground scale-100 hover:text-foreground/80"
+      isActive ? "text-nuumi-pink scale-105" : "text-muted-foreground scale-100 hover:text-foreground/80"
     )}>
       {isActive && (
         <motion.div 
           layoutId="navIndicator"
-          className="absolute inset-0 bg-nuumi-pink/10 rounded-full -m-2 w-10 h-10"
+          className="absolute inset-0 bg-nuumi-pink/10 rounded-full -m-1.5 w-8 h-8"
           initial={false}
           transition={{ type: "spring", duration: 0.5 }}
         />
       )}
       <Icon 
-        size={24} 
+        size={20} 
         strokeWidth={isActive ? 2.5 : 2}
         className={cn(
           "transition-all duration-300",
-          isActive && "drop-shadow-[0_0_3px_rgba(255,105,180,0.6)]"
+          isActive && "drop-shadow-[0_0_2px_rgba(255,105,180,0.6)]"
         )}
       />
     </div>
     <span className={cn(
-      "text-[10px] mt-1 font-medium transition-all",
+      "text-[9px] mt-0.5 font-medium transition-all",
       isActive ? "opacity-100 text-nuumi-pink" : "opacity-70"
     )}>
       {label}
@@ -74,12 +74,12 @@ const Navbar = () => {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 flex flex-col items-center pb-2 z-50 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 flex flex-col items-center pb-1 z-50 pointer-events-none">
       {/* Action Menu Popup */}
       <AnimatePresence>
         {actionMenuOpen && (
           <motion.div 
-            className="absolute bottom-20 flex space-x-4"
+            className="absolute bottom-16 flex space-x-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
@@ -87,38 +87,38 @@ const Navbar = () => {
           >
             <Link 
               to="/marketplace" 
-              className="bg-card shadow-lg rounded-full p-3 flex flex-col items-center pointer-events-auto"
+              className="bg-card shadow-lg rounded-full p-2 flex flex-col items-center pointer-events-auto"
               onClick={() => setActionMenuOpen(false)}
             >
-              <div className="bg-card shadow-inner p-2 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-nuumi-pink">
+              <div className="bg-card shadow-inner p-1.5 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-nuumi-pink">
                   <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
                   <path d="M3 6h18"></path>
                   <path d="M16 10a4 4 0 0 1-8 0"></path>
                 </svg>
               </div>
-              <span className="text-[10px] mt-1 font-medium">Marketplace</span>
+              <span className="text-[9px] mt-0.5 font-medium">Marketplace</span>
             </Link>
             <Link 
               to="/create" 
-              className="bg-card shadow-lg rounded-full p-3 flex flex-col items-center pointer-events-auto"
+              className="bg-card shadow-lg rounded-full p-2 flex flex-col items-center pointer-events-auto"
               onClick={() => setActionMenuOpen(false)}
             >
-              <div className="bg-card shadow-inner p-2 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-nuumi-pink">
+              <div className="bg-card shadow-inner p-1.5 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-nuumi-pink">
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M12 8v8"></path>
                   <path d="M8 12h8"></path>
                 </svg>
               </div>
-              <span className="text-[10px] mt-1 font-medium">Add Post</span>
+              <span className="text-[9px] mt-0.5 font-medium">Add Post</span>
             </Link>
           </motion.div>
         )}
       </AnimatePresence>
 
       <nav className="max-w-md w-full mx-auto pointer-events-auto">
-        <div className="relative flex items-center justify-around bg-card/90 backdrop-blur-xl border border-border/40 shadow-lg rounded-full px-8 py-3">
+        <div className="relative flex items-center justify-around bg-card/90 backdrop-blur-xl border border-border/40 shadow-lg rounded-full px-6 py-2">
           {/* Home button */}
           <NavItem
             key={navItems[0].path}
@@ -130,8 +130,8 @@ const Navbar = () => {
           />
           
           {/* Center Action Button with Groove */}
-          <div className="relative -mt-5 px-3">
-            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-16 h-16 bg-card rounded-full border border-border/40 -z-10"></div>
+          <div className="relative -mt-4 px-3">
+            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-card rounded-full border border-border/40 -z-10"></div>
             <ActionButton
               icon={Plus}
               label=""
@@ -141,7 +141,7 @@ const Navbar = () => {
                 actionMenuOpen && "rotate-45"
               )}
               variant="primary"
-              size="lg"
+              size="md"
             />
           </div>
           
