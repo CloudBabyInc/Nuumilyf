@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useNotifications } from '@/hooks/useNotifications';
 import NotificationItem from './NotificationItem';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 interface NotificationCenterProps {
   className?: string;
@@ -47,16 +48,27 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
       <PopoverContent className="w-[320px] p-0" align="end">
         <div className="flex items-center justify-between p-3 border-b border-border/30">
           <h3 className="font-semibold">Notifications</h3>
-          {unreadCount > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-xs h-8"
-              onClick={markAllAsRead}
-            >
-              Mark all as read
-            </Button>
-          )}
+          <div className="flex items-center space-x-2">
+            {unreadCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs h-8"
+                onClick={markAllAsRead}
+              >
+                Mark all read
+              </Button>
+            )}
+            <Link to="/notifications">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs h-8"
+              >
+                View all
+              </Button>
+            </Link>
+          </div>
         </div>
         
         <Tabs defaultValue="all" className="w-full">
@@ -81,7 +93,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
                   </div>
                 ))
               ) : notifications.length > 0 ? (
-                notifications.map(notification => (
+                notifications.slice(0, 5).map(notification => (
                   <NotificationItem
                     key={notification.id}
                     notification={notification}
@@ -91,6 +103,17 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
               ) : (
                 <div className="flex items-center justify-center p-6 text-muted-foreground">
                   No notifications yet
+                </div>
+              )}
+              {notifications.length > 5 && (
+                <div className="p-3 text-center">
+                  <Link 
+                    to="/notifications"
+                    className="text-sm text-nuumi-pink hover:underline" 
+                    onClick={() => setOpen(false)}
+                  >
+                    See all notifications
+                  </Link>
                 </div>
               )}
             </ScrollArea>
@@ -111,6 +134,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
               ) : notifications.filter(n => !n.read).length > 0 ? (
                 notifications
                   .filter(notification => !notification.read)
+                  .slice(0, 5)
                   .map(notification => (
                     <NotificationItem
                       key={notification.id}
@@ -121,6 +145,17 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
               ) : (
                 <div className="flex items-center justify-center p-6 text-muted-foreground">
                   No unread notifications
+                </div>
+              )}
+              {notifications.filter(n => !n.read).length > 5 && (
+                <div className="p-3 text-center">
+                  <Link 
+                    to="/notifications"
+                    className="text-sm text-nuumi-pink hover:underline" 
+                    onClick={() => setOpen(false)}
+                  >
+                    See all unread notifications
+                  </Link>
                 </div>
               )}
             </ScrollArea>

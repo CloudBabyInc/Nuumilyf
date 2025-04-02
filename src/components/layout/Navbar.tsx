@@ -1,11 +1,10 @@
 
 import React, { useState } from 'react';
-import { Home, Plus, User, Bell } from 'lucide-react';
+import { Home, Plus, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import ActionButton from '../shared/ActionButton';
-import { useNotifications } from '@/hooks/useNotifications';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -61,12 +60,10 @@ const Navbar = () => {
   // Use this for non-router environments or fallback to '/' when not in a Router context
   const [activeTab, setActiveTab] = useState('/feed');
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
-  const { unreadCount } = useNotifications();
   
-  // Define navItems with notifications added
+  // Define navItems - removed notifications tab
   const navItems = [
     { icon: Home, label: 'Home', path: '/feed' },
-    { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount },
     { icon: User, label: 'Profile', path: '/profile' },
   ];
 
@@ -150,24 +147,13 @@ const Navbar = () => {
             />
           </div>
           
-          {/* Notifications button */}
+          {/* Profile button */}
           <NavItem
             key={navItems[1].path}
             icon={navItems[1].icon}
             label={navItems[1].label}
             path={navItems[1].path}
             isActive={activeTab === navItems[1].path}
-            onClick={handleSetActiveTab}
-            badge={navItems[1].badge}
-          />
-          
-          {/* Profile button */}
-          <NavItem
-            key={navItems[2].path}
-            icon={navItems[2].icon}
-            label={navItems[2].label}
-            path={navItems[2].path}
-            isActive={activeTab === navItems[2].path}
             onClick={handleSetActiveTab}
           />
         </div>
