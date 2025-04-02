@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
-import { Home, Plus, User } from 'lucide-react';
+import { Home, Plus, User, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import ActionButton from '../shared/ActionButton';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -11,9 +13,10 @@ interface NavItemProps {
   path: string;
   isActive: boolean;
   onClick: (path: string) => void;
+  badge?: number;
 }
 
-const NavItem = ({ icon: Icon, label, path, isActive, onClick }: NavItemProps) => (
+const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }: NavItemProps) => (
   <Link
     to={path}
     className="flex flex-col items-center justify-center relative" 
@@ -39,6 +42,11 @@ const NavItem = ({ icon: Icon, label, path, isActive, onClick }: NavItemProps) =
           isActive && "drop-shadow-[0_0_2px_rgba(255,105,180,0.6)]"
         )}
       />
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-nuumi-pink text-[10px] flex items-center justify-center text-white font-medium">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
     </div>
     <span className={cn(
       "text-[9px] mt-0.5 font-medium transition-all",
@@ -53,10 +61,12 @@ const Navbar = () => {
   // Use this for non-router environments or fallback to '/' when not in a Router context
   const [activeTab, setActiveTab] = useState('/feed');
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const { unreadCount } = useNotifications();
   
-  // Define navItems with home and profile only
+  // Define navItems with notifications added
   const navItems = [
     { icon: Home, label: 'Home', path: '/feed' },
+    { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount },
     { icon: User, label: 'Profile', path: '/profile' },
   ];
 
@@ -140,13 +150,24 @@ const Navbar = () => {
             />
           </div>
           
-          {/* Profile button */}
+          {/* Notifications button */}
           <NavItem
             key={navItems[1].path}
             icon={navItems[1].icon}
             label={navItems[1].label}
             path={navItems[1].path}
             isActive={activeTab === navItems[1].path}
+            onClick={handleSetActiveTab}
+            badge={navItems[1].badge}
+          />
+          
+          {/* Profile button */}
+          <NavItem
+            key={navItems[2].path}
+            icon={navItems[2].icon}
+            label={navItems[2].label}
+            path={navItems[2].path}
+            isActive={activeTab === navItems[2].path}
             onClick={handleSetActiveTab}
           />
         </div>

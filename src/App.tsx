@@ -15,6 +15,7 @@ import Navbar from "./components/layout/Navbar";
 import Marketplace from "./pages/Marketplace";
 import CreatePost from "./pages/CreatePost";
 import Chats from "./pages/Chats";
+import Notifications from "./pages/Notifications";
 
 // Create a wrapper component that conditionally renders the Navbar
 const ConditionalNavbar = () => {
@@ -22,7 +23,7 @@ const ConditionalNavbar = () => {
   const pathname = location.pathname;
   
   // Only show navbar on these routes
-  const showNavbarRoutes = ['/feed', '/chats', '/profile', '/marketplace', '/create'];
+  const showNavbarRoutes = ['/feed', '/chats', '/profile', '/marketplace', '/create', '/notifications'];
   const hideNavbarRoutes = ['/chats/'];
   
   // Check if the current route matches any of the routes that should hide the navbar
@@ -52,6 +53,7 @@ const AppRoutes = () => {
         <Route path="/chats/*" element={<Chats />} />
         <Route path="/create" element={<CreatePost />} />
         <Route path="/marketplace" element={<Marketplace />} />
+        <Route path="/notifications" element={<Notifications />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
