@@ -8,7 +8,7 @@ interface AvatarProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   status?: 'online' | 'offline' | 'away' | 'busy';
   className?: string;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent) => void;
   showAddButton?: boolean;
 }
 
