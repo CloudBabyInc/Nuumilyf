@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Smile, PaperClip, Send, Image, Mic } from 'lucide-react';
+import { Smile, Paperclip, Send, Image, Mic } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MessageInputProps {
@@ -49,7 +49,7 @@ const MessageInput = ({ onSendMessage, isLoading = false, disabled = false }: Me
         
         <div className="flex space-x-1 mr-2">
           <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-            <PaperClip size={20} />
+            <Paperclip size={20} />
           </button>
           <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
             <Image size={20} />
