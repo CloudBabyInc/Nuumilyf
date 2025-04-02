@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import Post from '@/components/shared/Post';
 
 interface ProfilePageParams {
+  [key: string]: string | undefined;
   userId?: string;
 }
 
@@ -31,7 +32,6 @@ const Profile = () => {
   const [postsCount, setPostsCount] = useState(0);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  // Check if user is logged in
   useEffect(() => {
     const checkSession = async () => {
       setIsLoadingSession(true);
@@ -42,7 +42,6 @@ const Profile = () => {
     
     checkSession();
     
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setCurrentUser(session?.user || null);
@@ -54,14 +53,12 @@ const Profile = () => {
     };
   }, []);
 
-  // Fetch user stats
   useEffect(() => {
     const fetchStats = async () => {
       if (!profile?.id) return;
       
       setIsLoadingStats(true);
       
-      // Get followers count
       const { count: followersCount, error: followersError } = await supabase
         .from('followers')
         .select('id', { count: 'exact', head: true })
@@ -73,7 +70,6 @@ const Profile = () => {
         setFollowersCount(followersCount || 0);
       }
       
-      // Get following count
       const { count: followingCount, error: followingError } = await supabase
         .from('followers')
         .select('id', { count: 'exact', head: true })
@@ -85,7 +81,6 @@ const Profile = () => {
         setFollowingCount(followingCount || 0);
       }
       
-      // Get posts count
       const { count: postsCount, error: postsError } = await supabase
         .from('posts')
         .select('id', { count: 'exact', head: true })
@@ -97,7 +92,6 @@ const Profile = () => {
         setPostsCount(postsCount || 0);
       }
       
-      // Check if current user is following this profile
       if (currentUser?.id) {
         const { data: followData, error: followError } = await supabase
           .from('followers')
@@ -119,7 +113,6 @@ const Profile = () => {
     fetchStats();
   }, [profile?.id, currentUser?.id]);
 
-  // Fetch user posts
   useEffect(() => {
     const fetchPosts = async () => {
       if (!profile?.id) return;
@@ -138,7 +131,6 @@ const Profile = () => {
       
       if (!postsData) return;
       
-      // Format posts with additional data
       const formattedPosts = postsData.map(post => ({
         id: post.id,
         content: post.content,
@@ -157,10 +149,8 @@ const Profile = () => {
         isLiked: false
       }));
       
-      // Get engagement metrics for each post
       const postsWithMetrics = await Promise.all(
         formattedPosts.map(async (post) => {
-          // Get likes count
           const { count: likesCount, error: likesError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
@@ -170,7 +160,6 @@ const Profile = () => {
             console.error('Error fetching likes count:', likesError);
           }
           
-          // Get comments count
           const { count: commentsCount, error: commentsError } = await supabase
             .from('comments')
             .select('id', { count: 'exact', head: true })
@@ -180,7 +169,6 @@ const Profile = () => {
             console.error('Error fetching comments count:', commentsError);
           }
           
-          // Get reposts count
           const { count: repostsCount, error: repostsError } = await supabase
             .from('reposts')
             .select('id', { count: 'exact', head: true })
@@ -190,7 +178,6 @@ const Profile = () => {
             console.error('Error fetching reposts count:', repostsError);
           }
           
-          // Check if current user has liked this post
           let isLiked = false;
           if (currentUser?.id) {
             const { data: likeData, error: likeError } = await supabase
@@ -224,7 +211,6 @@ const Profile = () => {
   }, [profile?.id, currentUser?.id]);
 
   const handleAvatarClick = (event: React.MouseEvent) => {
-    // Handle the avatar click to open file select dialog when avatar is clicked
     if (currentUser?.id === profile?.id) {
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
@@ -257,7 +243,6 @@ const Profile = () => {
     
     try {
       if (isFollowing) {
-        // Unfollow
         const { error } = await supabase
           .from('followers')
           .delete()
@@ -270,7 +255,6 @@ const Profile = () => {
         setFollowersCount(prev => Math.max(0, prev - 1));
         toast.success(`Unfollowed ${profile.display_name || profile.username || 'user'}`);
       } else {
-        // Follow
         const { error } = await supabase
           .from('followers')
           .insert({
@@ -299,7 +283,6 @@ const Profile = () => {
     if (!profile?.id || currentUser.id === profile.id) return;
     
     try {
-      // Check if a conversation already exists between these users
       const { data: existingParticipations, error: participationError } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
@@ -319,13 +302,11 @@ const Profile = () => {
         if (otherPartError) throw otherPartError;
         
         if (otherParticipations && otherParticipations.length > 0) {
-          // Existing conversation found
           navigate(`/chats/${otherParticipations[0].conversation_id}`);
           return;
         }
       }
       
-      // Create a new conversation
       const { data: newConversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({})
@@ -334,7 +315,6 @@ const Profile = () => {
         
       if (conversationError) throw conversationError;
       
-      // Add current user as participant
       const { error: currentUserPartError } = await supabase
         .from('conversation_participants')
         .insert({
@@ -344,7 +324,6 @@ const Profile = () => {
         
       if (currentUserPartError) throw currentUserPartError;
       
-      // Add other user as participant
       const { error: otherUserPartError } = await supabase
         .from('conversation_participants')
         .insert({
@@ -354,7 +333,6 @@ const Profile = () => {
         
       if (otherUserPartError) throw otherUserPartError;
       
-      // Navigate to the chat
       navigate(`/chats/${newConversation.id}`);
     } catch (error) {
       console.error('Error starting chat:', error);
@@ -408,7 +386,6 @@ const Profile = () => {
     }
   };
 
-  // Get the data to display in the profile
   const displayName = profile?.display_name || 'Your Story';
   const username = profile?.username || 'your.story';
   const location = profile?.location;
