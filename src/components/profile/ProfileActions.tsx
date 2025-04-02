@@ -9,6 +9,7 @@ interface ProfileActionsProps {
   onFollow?: () => void;
   onMessage?: () => void;
   className?: string;
+  editProfileButton?: React.ReactNode;
 }
 
 const ProfileActions = ({
@@ -16,18 +17,23 @@ const ProfileActions = ({
   onEditProfile,
   onFollow,
   onMessage,
-  className
+  className,
+  editProfileButton
 }: ProfileActionsProps) => {
   return (
     <div className={cn("px-4 animate-fade-in animate-delay-300", className)}>
       {isCurrentUser ? (
-        <button 
-          onClick={onEditProfile}
-          className="w-full bg-nuumi-pink text-white rounded-full py-2.5 font-medium flex items-center justify-center transition-all hover:bg-nuumi-pink/90 mb-6"
-        >
-          <PenSquare size={18} className="mr-2" />
-          Edit Profile
-        </button>
+        editProfileButton ? (
+          <div>{editProfileButton}</div>
+        ) : (
+          <button 
+            onClick={onEditProfile}
+            className="w-full bg-nuumi-pink text-white rounded-full py-2.5 font-medium flex items-center justify-center transition-all hover:bg-nuumi-pink/90 mb-6"
+          >
+            <PenSquare size={18} className="mr-2" />
+            Edit Profile
+          </button>
+        )
       ) : (
         <div className="flex gap-4 mb-6">
           <button 
