@@ -339,7 +339,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_notifications_with_actors: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: {
+          id: string
+          user_id: string
+          actor_id: string
+          type: string
+          entity_id: string
+          entity_type: string
+          read: boolean
+          content: string
+          created_at: string
+          actor: Json
+        }[]
+      }
+      mark_all_notifications_as_read: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: undefined
+      }
+      mark_notification_as_read: {
+        Args: {
+          notification_id_param: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
