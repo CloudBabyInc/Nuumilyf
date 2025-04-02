@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Database } from '@/integrations/supabase/types';
 
 export interface Notification {
   id: string;
@@ -38,16 +39,19 @@ export function useNotifications() {
         return;
       }
 
-      // Using raw query approach to avoid type issues with the notifications table
-      const { data, error: queryError } = await supabase
-        .rpc('get_notifications_with_actors', {
-          user_id_param: session.session.user.id
-        });
+      // Using RPC function to get notifications with actor data
+      const { data, error: queryError } = await supabase.rpc(
+        'get_notifications_with_actors',
+        { user_id_param: session.session.user.id }
+      );
 
       if (queryError) throw queryError;
 
-      setNotifications(data as Notification[]);
-      setUnreadCount(data.filter((n: Notification) => !n.read).length);
+      // Type assertion to help TypeScript understand the structure
+      const typedData = data as unknown as Notification[];
+      
+      setNotifications(typedData || []);
+      setUnreadCount((typedData || []).filter(n => !n.read).length);
     } catch (err) {
       console.error('Error fetching notifications:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch notifications'));
@@ -58,11 +62,11 @@ export function useNotifications() {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      // Use raw SQL query to update notification
-      const { error: updateError } = await supabase
-        .rpc('mark_notification_as_read', {
-          notification_id_param: notificationId
-        });
+      // Use RPC function to mark notification as read
+      const { error: updateError } = await supabase.rpc(
+        'mark_notification_as_read',
+        { notification_id_param: notificationId }
+      );
 
       if (updateError) throw updateError;
 
@@ -82,11 +86,11 @@ export function useNotifications() {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) return;
 
-      // Use raw SQL query to update all notifications
-      const { error: updateError } = await supabase
-        .rpc('mark_all_notifications_as_read', {
-          user_id_param: session.session.user.id
-        });
+      // Use RPC function to mark all notifications as read
+      const { error: updateError } = await supabase.rpc(
+        'mark_all_notifications_as_read',
+        { user_id_param: session.session.user.id }
+      );
 
       if (updateError) throw updateError;
 
