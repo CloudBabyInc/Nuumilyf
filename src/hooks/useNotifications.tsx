@@ -38,25 +38,16 @@ export function useNotifications() {
         return;
       }
 
-      // Fetch notifications with actor profile information
-      const { data, error } = await supabase
-        .from('notifications')
-        .select(`
-          *,
-          actor:actor_id (
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
-        .eq('user_id', session.session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // Using raw query approach to avoid type issues with the notifications table
+      const { data, error: queryError } = await supabase
+        .rpc('get_notifications_with_actors', {
+          user_id_param: session.session.user.id
+        });
 
-      if (error) throw error;
+      if (queryError) throw queryError;
 
       setNotifications(data as Notification[]);
-      setUnreadCount(data.filter(n => !n.read).length);
+      setUnreadCount(data.filter((n: Notification) => !n.read).length);
     } catch (err) {
       console.error('Error fetching notifications:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch notifications'));
@@ -67,12 +58,13 @@ export function useNotifications() {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
+      // Use raw SQL query to update notification
+      const { error: updateError } = await supabase
+        .rpc('mark_notification_as_read', {
+          notification_id_param: notificationId
+        });
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       // Update local state
       setNotifications(prev => prev.map(n => 
@@ -90,13 +82,13 @@ export function useNotifications() {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) return;
 
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', session.session.user.id)
-        .eq('read', false);
+      // Use raw SQL query to update all notifications
+      const { error: updateError } = await supabase
+        .rpc('mark_all_notifications_as_read', {
+          user_id_param: session.session.user.id
+        });
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       // Update local state
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -125,6 +117,8 @@ export function useNotifications() {
           table: 'notifications',
           filter: `user_id=eq.${session.session.user.id}`,
         }, async (payload) => {
+          console.log('New notification:', payload);
+          
           // When a new notification is inserted, fetch the actor data
           const { data: actorData } = await supabase
             .from('profiles')
