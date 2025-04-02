@@ -4,7 +4,7 @@ import Avatar from '../shared/Avatar';
 
 interface ProfileHeaderProps {
   avatar?: string;
-  onAvatarClick: () => void;
+  onAvatarClick: (event: React.MouseEvent) => void;
 }
 
 const ProfileHeader = ({ avatar, onAvatarClick }: ProfileHeaderProps) => {
