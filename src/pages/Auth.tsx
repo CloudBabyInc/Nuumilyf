@@ -157,6 +157,17 @@ const Auth = () => {
                 required
                 minLength={6}
               />
+              {!isSignUp && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    className="text-xs text-nuumi-pink hover:underline"
+                    onClick={() => navigate('/forgot-password')}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
             </div>
             
             <Button
