@@ -95,20 +95,24 @@ const StoryCreation: React.FC<StoryCreationProps> = ({
       const fileName = `${nanoid()}.${fileExt}`;
       const filePath = `stories/${session.user.id}/${fileName}`;
       
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('media')
-        .upload(filePath, mediaFile);
+        .upload(filePath, mediaFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
         
       if (uploadError) {
-        throw uploadError;
+        console.error('Upload error:', uploadError);
+        throw new Error(`Failed to upload media: ${uploadError.message}`);
       }
       
       // Get the public URL
-      const { data: publicURL } = supabase.storage
+      const { data: publicURLData } = supabase.storage
         .from('media')
         .getPublicUrl(filePath);
         
-      if (!publicURL) {
+      if (!publicURLData || !publicURLData.publicUrl) {
         throw new Error('Failed to get public URL');
       }
       
@@ -117,14 +121,15 @@ const StoryCreation: React.FC<StoryCreationProps> = ({
         .from('stories')
         .insert({
           user_id: session.user.id,
-          image_url: publicURL.publicUrl,
+          image_url: publicURLData.publicUrl,
           caption: caption.trim() || null,
           // Expires after 24 hours
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         });
         
       if (dbError) {
-        throw dbError;
+        console.error('Database error:', dbError);
+        throw new Error(`Failed to save story: ${dbError.message}`);
       }
       
       toast.success('Story posted successfully');

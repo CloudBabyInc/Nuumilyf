@@ -54,9 +54,10 @@ const Feed = () => {
           image_url,
           caption,
           created_at,
-          user_id
+          user_id,
+          expires_at
         `)
-        .lt('expires_at', now)
+        .gt('expires_at', now)  // Changed to get non-expired stories
         .order('created_at', { ascending: false });
         
       if (storiesError) {
