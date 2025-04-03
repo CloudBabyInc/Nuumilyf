@@ -11,23 +11,23 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
   onSelectMediaType
 }) => {
   return (
-    <div className="flex justify-center gap-4 mb-6">
+    <div className="flex justify-center gap-4 my-4">
       <Button
         variant="outline"
         size="lg"
-        className="flex-1 flex flex-col items-center py-8 gap-2"
+        className="flex-1 flex flex-col items-center py-6 gap-2"
         onClick={() => onSelectMediaType('image')}
       >
-        <Image size={32} />
+        <Image size={28} />
         <span>Image</span>
       </Button>
       <Button
         variant="outline"
         size="lg"
-        className="flex-1 flex flex-col items-center py-8 gap-2"
+        className="flex-1 flex flex-col items-center py-6 gap-2"
         onClick={() => onSelectMediaType('video')}
       >
-        <Video size={32} />
+        <Video size={28} />
         <span>Video</span>
       </Button>
     </div>

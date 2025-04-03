@@ -67,18 +67,18 @@ const StoriesRow: React.FC<StoriesRowProps> = ({
 
   return (
     <div className={cn("relative", className)}>
-      <div className="overflow-x-auto pb-2 hide-scrollbar">
-        <div className="flex space-x-4 px-4">
+      <div className="overflow-x-auto pb-1 hide-scrollbar">
+        <div className="flex gap-3 px-3 py-2">
           {/* "Add Story" circle for logged in users */}
           {currentUserId && (
             <div 
-              className="flex flex-col items-center space-y-1 cursor-pointer"
+              className="flex flex-col items-center cursor-pointer max-w-[4rem]"
               onClick={handleCreateStory}
             >
               <div className="rounded-full bg-muted flex items-center justify-center w-14 h-14 border-2 border-dashed border-primary/50">
                 <PlusCircle className="text-primary" size={24} />
               </div>
-              <span className="text-xs text-center text-foreground truncate w-16">
+              <span className="text-xs text-center text-foreground truncate w-14 mt-1">
                 Add Story
               </span>
             </div>
@@ -87,9 +87,9 @@ const StoriesRow: React.FC<StoriesRowProps> = ({
           {isLoading ? (
             // Skeleton loading state
             Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center space-y-1">
+              <div key={i} className="flex flex-col items-center max-w-[4rem]">
                 <Skeleton className="h-14 w-14 rounded-full" />
-                <Skeleton className="h-3 w-10" />
+                <Skeleton className="h-3 w-10 mt-1" />
               </div>
             ))
           ) : (

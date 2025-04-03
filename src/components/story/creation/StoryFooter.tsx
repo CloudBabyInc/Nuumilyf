@@ -18,13 +18,14 @@ const StoryFooter: React.FC<StoryFooterProps> = ({
 }) => {
   return (
     <div className="p-4 border-t border-border flex justify-end gap-2">
-      <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+      <Button variant="outline" onClick={onCancel} disabled={isSubmitting} size="sm">
         Cancel
       </Button>
       <Button
         onClick={onSubmit}
         disabled={isSubmitDisabled || isSubmitting}
         className="gap-2"
+        size="sm"
       >
         {isSubmitting ? 'Posting...' : 'Post Story'}
         <Send size={16} />

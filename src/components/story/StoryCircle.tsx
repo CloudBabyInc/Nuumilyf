@@ -19,7 +19,7 @@ const StoryCircle: React.FC<StoryCircleProps> = ({
   className
 }) => {
   return (
-    <div className={cn("flex flex-col items-center space-y-1", className)}>
+    <div className={cn("flex flex-col items-center space-y-1 max-w-[4rem]", className)}>
       <button
         onClick={onClick}
         className={cn(
@@ -37,7 +37,7 @@ const StoryCircle: React.FC<StoryCircleProps> = ({
           )}
         />
       </button>
-      <span className="text-xs text-center text-foreground truncate w-16">
+      <span className="text-xs text-center text-foreground truncate w-14">
         {name}
       </span>
     </div>

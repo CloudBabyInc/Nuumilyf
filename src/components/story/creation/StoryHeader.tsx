@@ -12,7 +12,8 @@ const StoryHeader: React.FC<StoryHeaderProps> = ({ onClose }) => {
       <h2 className="text-lg font-semibold">Create Story</h2>
       <button
         onClick={onClose}
-        className="text-muted-foreground hover:text-foreground transition-colors"
+        className="text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+        aria-label="Close"
       >
         <X size={24} />
       </button>
