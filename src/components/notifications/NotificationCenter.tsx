@@ -14,6 +14,9 @@ import { useNotifications } from '@/hooks/useNotifications';
 import NotificationItem from './NotificationItem';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationCenterProps {
   className?: string;
@@ -21,6 +24,8 @@ interface NotificationCenterProps {
 
 const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) => {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const { 
     notifications, 
     unreadCount, 
@@ -29,6 +34,20 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
     markAllAsRead 
   } = useNotifications();
 
+  const handleClick = async () => {
+    // Check if user is logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to view your notifications",
+        variant: "destructive"
+      });
+      navigate('/auth');
+      return;
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -36,6 +55,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
           variant="ghost" 
           size="icon" 
           className={cn("relative", className)}
+          onClick={handleClick}
         >
           <Bell size={20} />
           {unreadCount > 0 && (
@@ -59,7 +79,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
                 Mark all read
               </Button>
             )}
-            <Link to="/notifications">
+            <Link to="/notifications" onClick={() => setOpen(false)}>
               <Button 
                 variant="ghost" 
                 size="sm" 

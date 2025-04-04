@@ -1,13 +1,12 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Settings, MessageCircle, Bell } from 'lucide-react';
+import { ChevronLeft, Settings, MessageCircle } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import Avatar from '@/components/shared/Avatar';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useNotifications } from '@/hooks/useNotifications';
 
 interface HeaderProps {
   title?: string;
@@ -31,7 +30,6 @@ const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile } = useProfile();
-  const { unreadCount } = useNotifications();
   const [session, setSession] = React.useState<any>(null);
 
   React.useEffect(() => {
@@ -70,19 +68,6 @@ const Header: React.FC<HeaderProps> = ({
     }
     navigate('/chats');
   };
-  
-  const handleNotificationsClick = () => {
-    if (!session) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to view your notifications",
-        variant: "destructive"
-      });
-      navigate('/auth');
-      return;
-    }
-    navigate('/notifications');
-  };
 
   return (
     <header className={`sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3 ${className}`}>
@@ -110,21 +95,8 @@ const Header: React.FC<HeaderProps> = ({
                 <MessageCircle size={20} className="text-foreground" />
               </button>
               
-              {/* Regular button for direct navigation to notifications page */}
-              <button
-                onClick={handleNotificationsClick}
-                className="p-2 rounded-full hover:bg-muted transition-colors relative"
-              >
-                <Bell size={20} className="text-foreground" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-nuumi-pink text-[10px] flex items-center justify-center text-white font-medium">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-              
-              {/* Enhanced NotificationCenter with dropdown */}
-              <NotificationCenter className="hidden md:flex p-2 rounded-full hover:bg-muted transition-colors" />
+              {/* NotificationCenter - now always visible regardless of screen size */}
+              <NotificationCenter className="p-2 rounded-full hover:bg-muted transition-colors" />
             </>
           )}
           
