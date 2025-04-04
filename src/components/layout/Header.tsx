@@ -70,7 +70,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className={`sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3 ${className}`}>
+    <header className={`sticky top-0 z-10 bg-background/80 backdrop-blur-md px-4 py-3 ${className}`}>
       <div className="flex items-center justify-between max-w-md mx-auto">
         <div className="flex items-center">
           {showBackButton && (
@@ -85,27 +85,26 @@ const Header: React.FC<HeaderProps> = ({
           {title && <h1 className="text-lg font-semibold">{title}</h1>}
         </div>
 
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1.5">
           {session && (
             <>
               <button
                 onClick={handleMessageClick}
-                className="p-2 rounded-full hover:bg-muted transition-colors"
+                className="p-1.5 rounded-full hover:bg-muted transition-colors"
               >
-                <MessageCircle size={20} className="text-foreground" />
+                <MessageCircle size={18} className="text-foreground" />
               </button>
               
-              {/* NotificationCenter - now always visible regardless of screen size */}
-              <NotificationCenter className="p-2 rounded-full hover:bg-muted transition-colors" />
+              <NotificationCenter className="p-1.5 rounded-full hover:bg-muted transition-colors" />
             </>
           )}
           
           {showSettings && (
             <button
               onClick={onSettingsClick}
-              className="p-2 rounded-full hover:bg-muted transition-colors"
+              className="p-1.5 rounded-full hover:bg-muted transition-colors"
             >
-              <Settings size={20} className="text-foreground" />
+              <Settings size={18} className="text-foreground" />
             </button>
           )}
           

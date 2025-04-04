@@ -57,16 +57,16 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
           className={cn("relative", className)}
           onClick={handleClick}
         >
-          <Bell size={20} />
+          <Bell size={18} />
           {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-nuumi-pink text-[10px] flex items-center justify-center text-white font-medium">
+            <span className="absolute top-0 right-0 h-3.5 w-3.5 rounded-full bg-nuumi-pink text-[9px] flex items-center justify-center text-white font-medium">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-0" align="end">
-        <div className="flex items-center justify-between p-3 border-b border-border/30">
+      <PopoverContent className="w-[320px] p-0 border border-border/30 shadow-lg rounded-xl overflow-hidden" align="end">
+        <div className="flex items-center justify-between p-3">
           <h3 className="font-semibold">Notifications</h3>
           <div className="flex items-center space-x-2">
             {unreadCount > 0 && (
@@ -92,19 +92,19 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
         </div>
         
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 h-9 px-2 pt-2">
-            <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-            <TabsTrigger value="unread" className="text-xs">
+          <TabsList className="w-full grid grid-cols-2 h-9 px-2 pt-2 bg-transparent">
+            <TabsTrigger value="all" className="text-xs rounded-md">All</TabsTrigger>
+            <TabsTrigger value="unread" className="text-xs rounded-md">
               Unread
               {unreadCount > 0 && <span className="ml-1 text-nuumi-pink">{unreadCount}</span>}
             </TabsTrigger>
           </TabsList>
           
           <TabsContent value="all" className="mt-0">
-            <ScrollArea className="h-[350px]">
+            <ScrollArea className="h-[350px] overflow-y-auto overscroll-behavior-y-contain" style={{scrollSnapType: 'y mandatory'}}>
               {isLoading ? (
                 Array(3).fill(0).map((_, i) => (
-                  <div key={i} className="flex items-start p-3 border-b border-border/30">
+                  <div key={i} className="flex items-start p-3 border-b border-border/10">
                     <Skeleton className="h-8 w-8 rounded-full" />
                     <div className="ml-3 flex-1">
                       <Skeleton className="h-4 w-3/4 mb-2" />
@@ -140,10 +140,10 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
           </TabsContent>
           
           <TabsContent value="unread" className="mt-0">
-            <ScrollArea className="h-[350px]">
+            <ScrollArea className="h-[350px] overflow-y-auto overscroll-behavior-y-contain" style={{scrollSnapType: 'y mandatory'}}>
               {isLoading ? (
                 Array(2).fill(0).map((_, i) => (
-                  <div key={i} className="flex items-start p-3 border-b border-border/30">
+                  <div key={i} className="flex items-start p-3 border-b border-border/10">
                     <Skeleton className="h-8 w-8 rounded-full" />
                     <div className="ml-3 flex-1">
                       <Skeleton className="h-4 w-3/4 mb-2" />
