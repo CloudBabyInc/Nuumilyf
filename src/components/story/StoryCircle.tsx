@@ -20,13 +20,15 @@ const StoryCircle: React.FC<StoryCircleProps> = ({
   className,
   children
 }) => {
+  const isAddStory = name === "Add Story";
+  
   return (
     <div className={cn("flex flex-col items-center space-y-1 max-w-[4rem]", className)}>
       <button
         onClick={onClick}
         className={cn(
-          "rounded-full p-[2px] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-nuumi-pink",
-          isViewed ? "bg-muted" : "bg-gradient-to-br from-nuumi-pink to-pink-400"
+          "w-14 h-14 rounded-full p-[2px] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-nuumi-pink relative",
+          isViewed || isAddStory ? "bg-muted" : "bg-gradient-to-br from-nuumi-pink to-pink-400"
         )}
       >
         <Avatar
@@ -34,8 +36,9 @@ const StoryCircle: React.FC<StoryCircleProps> = ({
           alt={name}
           size="md"
           className={cn(
-            "border-2 border-background", 
-            isViewed ? "opacity-70" : "opacity-100"
+            "border-2 border-background relative", 
+            isViewed ? "opacity-70" : "opacity-100",
+            isAddStory && "opacity-50"
           )}
         />
         {children}

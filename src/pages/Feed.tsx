@@ -31,10 +31,12 @@ const Feed = () => {
   const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
 
+    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
@@ -57,7 +59,7 @@ const Feed = () => {
           user_id,
           expires_at
         `)
-        .gt('expires_at', now)  // Changed to get non-expired stories
+        .gt('expires_at', now)
         .order('created_at', { ascending: false });
         
       if (storiesError) {
@@ -104,7 +106,60 @@ const Feed = () => {
       return storiesWithProfiles.filter(Boolean) as StoryItem[];
     },
     enabled: !!session,
+    refetchInterval: 60000, // Refetch every minute to check for expired stories
   });
+
+  const queryClient = useQuery().client;
+
+  // Set up real-time subscriptions
+  useEffect(() => {
+    if (!session) return;
+    
+    // Subscribe to real-time updates for posts
+    const postsChannel = supabase
+      .channel('public:posts')
+      .on('postgres_changes', {
+        event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+        schema: 'public',
+        table: 'posts',
+      }, () => {
+        // When posts change, invalidate the posts query
+        queryClient.invalidateQueries({ queryKey: ['posts'] });
+      })
+      .subscribe();
+      
+    // Subscribe to real-time updates for likes
+    const likesChannel = supabase
+      .channel('public:likes')
+      .on('postgres_changes', {
+        event: '*', // Listen for all events
+        schema: 'public',
+        table: 'likes',
+      }, () => {
+        // When likes change, invalidate the posts query
+        queryClient.invalidateQueries({ queryKey: ['posts'] });
+      })
+      .subscribe();
+      
+    // Subscribe to real-time updates for comments
+    const commentsChannel = supabase
+      .channel('public:comments')
+      .on('postgres_changes', {
+        event: '*', // Listen for all events
+        schema: 'public',
+        table: 'comments',
+      }, () => {
+        // When comments change, invalidate the posts query
+        queryClient.invalidateQueries({ queryKey: ['posts'] });
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(likesChannel);
+      supabase.removeChannel(commentsChannel);
+    };
+  }, [session, queryClient]);
 
   const { data: posts, isLoading: postsLoading } = useQuery({
     queryKey: ['posts'],

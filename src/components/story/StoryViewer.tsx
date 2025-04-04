@@ -46,18 +46,25 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  if (stories.length === 0) return null;
+  // Sort stories by creation date (newest first)
+  const sortedStories = [...stories].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
-  const currentStory = stories[currentIndex];
+  if (sortedStories.length === 0) return null;
+
+  const currentStory = sortedStories[currentIndex];
 
   return (
     <Story
       story={currentStory}
       onClose={onClose}
-      onNext={currentIndex < stories.length - 1 ? () => setCurrentIndex(prev => prev + 1) : undefined}
+      onNext={currentIndex < sortedStories.length - 1 ? () => setCurrentIndex(prev => prev + 1) : undefined}
       onPrevious={currentIndex > 0 ? () => setCurrentIndex(prev => prev - 1) : undefined}
-      hasNext={currentIndex < stories.length - 1}
+      hasNext={currentIndex < sortedStories.length - 1}
       hasPrevious={currentIndex > 0}
+      isPaused={isPaused}
+      onTogglePause={() => setIsPaused(prev => !prev)}
     />
   );
 };

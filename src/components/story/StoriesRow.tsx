@@ -73,18 +73,47 @@ const StoriesRow: React.FC<StoriesRowProps> = ({
   const handleStoryCreationSuccess = () => {
     // Invalidate stories query to fetch the latest stories
     queryClient.invalidateQueries({ queryKey: ['stories'] });
+    setIsCreating(false);
   };
+
+  // Set up real-time subscription for stories
+  useEffect(() => {
+    // Subscribe to real-time updates for stories
+    const channel = supabase
+      .channel('public:stories')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'stories',
+      }, () => {
+        // When a new story is added, invalidate the stories query
+        queryClient.invalidateQueries({ queryKey: ['stories'] });
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'stories',
+      }, () => {
+        // When a story is deleted (e.g. expires), invalidate the stories query
+        queryClient.invalidateQueries({ queryKey: ['stories'] });
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   return (
     <div className={cn("relative", className)}>
       <div className="overflow-x-auto pb-1 hide-scrollbar">
-        <div className="flex gap-3 px-3 py-2">
-          {/* Show "Add Story" button or current user's story */}
+        <div className="flex gap-2 px-3 py-2">
+          {/* Current user's story or Add Story button first */}
           {currentUserId && (
             currentUserHasStories ? (
               <StoryCircle
-                key={currentUserStory?.id}
-                name={currentUserStory?.user.name || "Your Story"}
+                key={`user-story-${currentUserStory?.id}`}
+                name="Your Story"
                 avatar={currentUserStory?.user.avatar}
                 isViewed={false}
                 onClick={() => {
@@ -96,22 +125,17 @@ const StoriesRow: React.FC<StoriesRowProps> = ({
                     handleStoryClick(currentUserId, currentUserIndex);
                   }
                 }}
-                className="relative"
-              >
-                {/* You could add a small edit icon here if needed */}
-              </StoryCircle>
+              />
             ) : (
-              <div 
-                className="flex flex-col items-center cursor-pointer max-w-[4rem]"
+              <StoryCircle 
+                name="Add Story" 
                 onClick={handleCreateStory}
+                isViewed={true}
               >
-                <div className="rounded-full bg-muted flex items-center justify-center w-14 h-14 border-2 border-dashed border-primary/50">
-                  <PlusCircle className="text-primary" size={24} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <PlusCircle className="text-primary" size={16} />
                 </div>
-                <span className="text-xs text-center text-foreground truncate w-14 mt-1">
-                  Add Story
-                </span>
-              </div>
+              </StoryCircle>
             )
           )}
 
@@ -129,7 +153,7 @@ const StoriesRow: React.FC<StoriesRowProps> = ({
               .filter(story => story.user.id !== currentUserId)
               .map((story, index) => (
                 <StoryCircle
-                  key={story.id}
+                  key={`user-story-${story.id}`}
                   name={story.user.name}
                   avatar={story.user.avatar}
                   isViewed={false} // We'd track this state in a real app
