@@ -21,6 +21,7 @@ const Auth = () => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
+        console.log('User already has a session, redirecting to feed');
         navigate('/feed');
       }
     };
@@ -63,6 +64,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      console.log('Attempting to sign in with:', { email });
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -71,6 +73,7 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
+        console.log('Sign in successful:', data.user.id);
         toast.success('Signed in successfully!');
         navigate('/feed');
       }

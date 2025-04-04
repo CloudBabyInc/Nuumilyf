@@ -14,9 +14,20 @@ const AuthCheck = ({ children, redirectTo = '/auth' }: AuthCheckProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    // First set up the auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event, !!session);
+        setIsAuthenticated(!!session);
+        setIsLoading(false);
+      }
+    );
+    
+    // Then check the current session
     const checkAuth = async () => {
       try {
         const { data } = await supabase.auth.getSession();
+        console.log('Current session check:', !!data.session);
         setIsAuthenticated(!!data.session);
       } catch (error) {
         console.error('Error checking auth:', error);
@@ -28,13 +39,7 @@ const AuthCheck = ({ children, redirectTo = '/auth' }: AuthCheckProps) => {
     
     checkAuth();
     
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setIsAuthenticated(!!session);
-        setIsLoading(false);
-      }
-    );
-    
+    // Clean up subscription
     return () => {
       subscription.unsubscribe();
     };
