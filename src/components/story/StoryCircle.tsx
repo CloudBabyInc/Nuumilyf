@@ -9,6 +9,7 @@ interface StoryCircleProps {
   isViewed?: boolean;
   onClick?: () => void;
   className?: string;
+  children?: React.ReactNode;
 }
 
 const StoryCircle: React.FC<StoryCircleProps> = ({
@@ -16,7 +17,8 @@ const StoryCircle: React.FC<StoryCircleProps> = ({
   avatar,
   isViewed = false,
   onClick,
-  className
+  className,
+  children
 }) => {
   return (
     <div className={cn("flex flex-col items-center space-y-1 max-w-[4rem]", className)}>
@@ -36,6 +38,7 @@ const StoryCircle: React.FC<StoryCircleProps> = ({
             isViewed ? "opacity-70" : "opacity-100"
           )}
         />
+        {children}
       </button>
       <span className="text-xs text-center text-foreground truncate w-14">
         {name}

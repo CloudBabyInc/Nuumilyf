@@ -44,6 +44,16 @@ const StoriesRow: React.FC<StoriesRowProps> = ({
     )[0];
   });
   
+  // Check if current user has stories
+  const currentUserHasStories = currentUserId && storiesByUser[currentUserId]?.length > 0;
+  
+  // Get current user story if it exists
+  const currentUserStory = currentUserId && currentUserHasStories
+    ? storiesByUser[currentUserId].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0]
+    : null;
+  
   // For the story viewer, we need to select stories from the same user
   const handleStoryClick = (userId: string, index: number) => {
     setActiveStoryIndex(index);
@@ -69,19 +79,40 @@ const StoriesRow: React.FC<StoriesRowProps> = ({
     <div className={cn("relative", className)}>
       <div className="overflow-x-auto pb-1 hide-scrollbar">
         <div className="flex gap-3 px-3 py-2">
-          {/* "Add Story" circle for logged in users */}
+          {/* Show "Add Story" button or current user's story */}
           {currentUserId && (
-            <div 
-              className="flex flex-col items-center cursor-pointer max-w-[4rem]"
-              onClick={handleCreateStory}
-            >
-              <div className="rounded-full bg-muted flex items-center justify-center w-14 h-14 border-2 border-dashed border-primary/50">
-                <PlusCircle className="text-primary" size={24} />
+            currentUserHasStories ? (
+              <StoryCircle
+                key={currentUserStory?.id}
+                name={currentUserStory?.user.name || "Your Story"}
+                avatar={currentUserStory?.user.avatar}
+                isViewed={false}
+                onClick={() => {
+                  // Find the index of current user's story in the latestUserStories array
+                  const currentUserIndex = latestUserStories.findIndex(
+                    story => story.user.id === currentUserId
+                  );
+                  if (currentUserIndex !== -1) {
+                    handleStoryClick(currentUserId, currentUserIndex);
+                  }
+                }}
+                className="relative"
+              >
+                {/* You could add a small edit icon here if needed */}
+              </StoryCircle>
+            ) : (
+              <div 
+                className="flex flex-col items-center cursor-pointer max-w-[4rem]"
+                onClick={handleCreateStory}
+              >
+                <div className="rounded-full bg-muted flex items-center justify-center w-14 h-14 border-2 border-dashed border-primary/50">
+                  <PlusCircle className="text-primary" size={24} />
+                </div>
+                <span className="text-xs text-center text-foreground truncate w-14 mt-1">
+                  Add Story
+                </span>
               </div>
-              <span className="text-xs text-center text-foreground truncate w-14 mt-1">
-                Add Story
-              </span>
-            </div>
+            )
           )}
 
           {isLoading ? (
@@ -93,15 +124,22 @@ const StoriesRow: React.FC<StoriesRowProps> = ({
               </div>
             ))
           ) : (
-            latestUserStories.map((story, index) => (
-              <StoryCircle
-                key={story.id}
-                name={story.user.name}
-                avatar={story.user.avatar}
-                isViewed={false} // We'd track this state in a real app
-                onClick={() => handleStoryClick(story.user.id, index)}
-              />
-            ))
+            // Show other users' stories (excluding current user's story)
+            latestUserStories
+              .filter(story => story.user.id !== currentUserId)
+              .map((story, index) => (
+                <StoryCircle
+                  key={story.id}
+                  name={story.user.name}
+                  avatar={story.user.avatar}
+                  isViewed={false} // We'd track this state in a real app
+                  onClick={() => {
+                    // We need to adjust the index since we've filtered out the current user
+                    const adjustedIndex = latestUserStories.findIndex(s => s.id === story.id);
+                    handleStoryClick(story.user.id, adjustedIndex);
+                  }}
+                />
+              ))
           )}
         </div>
       </div>
