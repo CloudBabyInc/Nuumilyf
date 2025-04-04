@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
 import Post from '@/components/shared/Post';
@@ -29,6 +28,7 @@ interface PostType {
 
 const Feed = () => {
   const [session, setSession] = useState<any>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Get initial session
@@ -108,8 +108,6 @@ const Feed = () => {
     enabled: !!session,
     refetchInterval: 60000, // Refetch every minute to check for expired stories
   });
-
-  const queryClient = useQuery().client;
 
   // Set up real-time subscriptions
   useEffect(() => {

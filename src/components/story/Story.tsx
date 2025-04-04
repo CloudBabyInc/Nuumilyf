@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Image, Video, Volume2, VolumeX, Pause, Play } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
@@ -31,6 +30,8 @@ interface StoryProps {
   hasNext?: boolean;
   hasPrevious?: boolean;
   duration?: number; // Duration in seconds for auto-advance
+  isPaused?: boolean; // Add isPaused prop
+  onTogglePause?: () => void; // Add onTogglePause prop
 }
 
 const Story: React.FC<StoryProps> = ({
@@ -40,12 +41,13 @@ const Story: React.FC<StoryProps> = ({
   onPrevious,
   hasNext = false,
   hasPrevious = false,
-  duration = 5
+  duration = 5,
+  isPaused = false, // Default to false if not provided
+  onTogglePause // Optional callback for external pause control
 }) => {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timerRef = useRef<number | null>(null);
@@ -113,7 +115,6 @@ const Story: React.FC<StoryProps> = ({
     setCurrentMediaIndex(0);
     setIsLoading(true);
     setProgress(0);
-    setIsPaused(false);
   }, [story.id]);
 
   // Handle media changes
@@ -153,32 +154,35 @@ const Story: React.FC<StoryProps> = ({
 
   // Toggle pause/play
   const togglePause = () => {
-    setIsPaused(prev => {
-      const newPausedState = !prev;
-      
-      if (isVideo && videoRef.current) {
-        if (newPausedState) {
-          videoRef.current.pause();
-          if (timerRef.current) {
-            window.clearInterval(timerRef.current);
-          }
-        } else {
-          videoRef.current.play().catch(err => console.error("Error playing video:", err));
-          startProgressTimer();
+    // If external control is provided, use it
+    if (onTogglePause) {
+      onTogglePause();
+      return;
+    }
+    
+    // Otherwise handle pause internally
+    const newPausedState = !isPaused;
+    
+    if (isVideo && videoRef.current) {
+      if (newPausedState) {
+        videoRef.current.pause();
+        if (timerRef.current) {
+          window.clearInterval(timerRef.current);
         }
       } else {
-        // For images
-        if (newPausedState) {
-          if (timerRef.current) {
-            window.clearInterval(timerRef.current);
-          }
-        } else {
-          startProgressTimer();
-        }
+        videoRef.current.play().catch(err => console.error("Error playing video:", err));
+        startProgressTimer();
       }
-      
-      return newPausedState;
-    });
+    } else {
+      // For images
+      if (newPausedState) {
+        if (timerRef.current) {
+          window.clearInterval(timerRef.current);
+        }
+      } else {
+        startProgressTimer();
+      }
+    }
   };
 
   // Toggle mute for videos
