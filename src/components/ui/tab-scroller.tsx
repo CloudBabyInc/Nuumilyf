@@ -57,13 +57,13 @@ export const TabScroller = ({
     scrollRef.current.scrollLeft = scrollLeft.current - walk;
   };
 
-  // Wrap children to add custom class to each item
+  // Wrap children with the className from itemClassName
   const wrappedChildren = React.Children.map(children, (child) => {
     if (!React.isValidElement(child)) return child;
     
     return React.cloneElement(child, {
       className: cn(child.props.className, itemClassName),
-    });
+    } as React.HTMLAttributes<HTMLElement>);
   });
 
   return (

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import StoryCircle from './StoryCircle';
 import { StoryItem } from './Story';
@@ -99,9 +100,10 @@ const StoriesRow = ({
           <StoryCircle 
             key={story.id || index}
             name={story.user.name}
-            image={story.user.avatar}
+            avatar={story.user.avatar}
             isViewed={false} // You might want to add a way to track viewed stories
-            stories={story.allStories}
+            onClick={() => console.log('View story', story.id)}
+            children={undefined}
           />
         ))}
       </TabScroller>

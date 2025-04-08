@@ -180,7 +180,7 @@ const NotificationCenter = ({ className }: NotificationCenterProps) => {
                   <NotificationItem
                     key={notification.id}
                     notification={notification}
-                    onRead={() => handleRead(notification.id)}
+                    onMarkAsRead={() => handleRead(notification.id)}
                   />
                 ))
               ) : (
