@@ -11,7 +11,8 @@ export function useAuth() {
   useEffect(() => {
     // First set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        console.log('Auth state change event:', event);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -20,6 +21,7 @@ export function useAuth() {
     
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', !!session);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -32,7 +34,11 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('Signing out user');
+      await supabase.auth.signOut({ scope: 'local' });
+      // Clear any local state if needed
+      setUser(null);
+      setSession(null);
       return { success: true };
     } catch (error) {
       console.error('Error signing out:', error);

@@ -10,6 +10,15 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    storage: localStorage
+    storage: localStorage,
+    detectSessionInUrl: false, // Disable automatic detection of auth redirects
+    flowType: 'implicit' // Use implicit flow for simpler auth
   }
 });
+
+// Add a function to check if the auth is working properly
+export const checkAuthStatus = async () => {
+  const { data, error } = await supabase.auth.getSession();
+  console.log('Current auth status:', data?.session ? 'Logged in' : 'Logged out', error);
+  return { session: data.session, error };
+};

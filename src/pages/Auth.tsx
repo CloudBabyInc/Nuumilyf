@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,12 +64,19 @@ const Auth = () => {
 
     try {
       console.log('Attempting to sign in with:', { email });
+      
+      // Clear any existing session first to ensure clean login attempt
+      await supabase.auth.signOut({ scope: 'local' });
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Sign in error:', error);
+        throw error;
+      }
 
       if (data.user) {
         console.log('Sign in successful:', data.user.id);

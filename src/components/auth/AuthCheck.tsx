@@ -17,7 +17,7 @@ const AuthCheck = ({ children, redirectTo = '/auth' }: AuthCheckProps) => {
     // First set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state changed:', event, !!session);
+        console.log('Auth check event:', event, !!session);
         setIsAuthenticated(!!session);
         setIsLoading(false);
       }
@@ -27,7 +27,7 @@ const AuthCheck = ({ children, redirectTo = '/auth' }: AuthCheckProps) => {
     const checkAuth = async () => {
       try {
         const { data } = await supabase.auth.getSession();
-        console.log('Current session check:', !!data.session);
+        console.log('Auth check current session:', !!data.session);
         setIsAuthenticated(!!data.session);
       } catch (error) {
         console.error('Error checking auth:', error);
@@ -54,9 +54,11 @@ const AuthCheck = ({ children, redirectTo = '/auth' }: AuthCheckProps) => {
   }
 
   if (!isAuthenticated) {
+    console.log('User not authenticated, redirecting to', redirectTo);
     return <Navigate to={redirectTo} />;
   }
 
+  console.log('User is authenticated, rendering children');
   return <>{children}</>;
 };
 
