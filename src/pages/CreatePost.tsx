@@ -24,16 +24,24 @@ const CreatePost = () => {
   };
 
   const handleFileSelect = () => {
+    console.log("File select button clicked");
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    } else {
+      console.error("File input reference is null");
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0) {
+      console.log("No files selected");
+      return;
+    }
     
     const file = files[0];
+    console.log("File selected:", file.name, file.type, file.size);
+    
     // Check file type
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file');
@@ -87,6 +95,8 @@ const CreatePost = () => {
         const fileName = `${nanoid()}.${fileExt}`;
         const filePath = `posts/${user.id}/${fileName}`;
         
+        console.log("Uploading image to:", filePath);
+        
         const { error: uploadError, data } = await supabase.storage
           .from('media')
           .upload(filePath, imageFile, {
@@ -95,6 +105,7 @@ const CreatePost = () => {
           });
           
         if (uploadError) {
+          console.error("Upload error:", uploadError);
           throw new Error(`Error uploading image: ${uploadError.message}`);
         }
         
@@ -105,6 +116,7 @@ const CreatePost = () => {
           
         if (publicUrlData) {
           imageUrl = publicUrlData.publicUrl;
+          console.log("Image uploaded successfully, URL:", imageUrl);
         }
       }
       
@@ -118,6 +130,7 @@ const CreatePost = () => {
         });
         
       if (postError) {
+        console.error("Post error:", postError);
         throw new Error(`Error creating post: ${postError.message}`);
       }
       
@@ -157,6 +170,7 @@ const CreatePost = () => {
                 onClick={handleRemoveImage}
                 className="absolute top-2 right-2 bg-black/60 rounded-full p-1 text-white hover:bg-black/80 transition-colors"
                 disabled={isSubmitting}
+                aria-label="Remove image"
               >
                 <X size={18} />
               </button>
@@ -168,6 +182,7 @@ const CreatePost = () => {
               className="flex items-center text-nuumi-pink hover:text-nuumi-pink/80 transition-colors"
               onClick={handleFileSelect}
               disabled={isSubmitting}
+              data-testid="add-photo-button"
             >
               <ImagePlus size={20} className="mr-2" />
               <span>Add Photo</span>
@@ -179,6 +194,7 @@ const CreatePost = () => {
               onChange={handleFileChange}
               accept="image/*"
               className="hidden"
+              data-testid="file-input"
             />
             
             <Button 

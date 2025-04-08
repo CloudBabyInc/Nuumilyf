@@ -20,9 +20,14 @@ export const useStoryCreation = ({ onClose, onSuccess }: StoryCreationHookProps)
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0) {
+      console.log("No files selected");
+      return;
+    }
     
     const file = files[0];
+    console.log("File selected:", file.name, file.type, file.size);
+    
     const isVideo = file.type.startsWith('video/');
     const isImage = file.type.startsWith('image/');
     
@@ -54,10 +59,13 @@ export const useStoryCreation = ({ onClose, onSuccess }: StoryCreationHookProps)
 
   // Handle media upload button click
   const handleUploadClick = (type: 'image' | 'video') => {
+    console.log("Upload click for type:", type);
     setMediaType(type);
     if (fileInputRef.current) {
       fileInputRef.current.accept = type === 'image' ? 'image/*' : 'video/*';
       fileInputRef.current.click();
+    } else {
+      console.error("File input ref is null");
     }
   };
 
@@ -65,6 +73,10 @@ export const useStoryCreation = ({ onClose, onSuccess }: StoryCreationHookProps)
   const handleRemoveMedia = () => {
     setMediaFile(null);
     setPreview(null);
+    // Reset the file input to allow selecting the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // Submit the story
@@ -89,6 +101,7 @@ export const useStoryCreation = ({ onClose, onSuccess }: StoryCreationHookProps)
       const fileName = `${nanoid()}.${fileExt}`;
       const filePath = `stories/${session.user.id}/${fileName}`;
       
+      console.log("Uploading file to path:", filePath);
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('media')
         .upload(filePath, mediaFile, {
@@ -109,6 +122,8 @@ export const useStoryCreation = ({ onClose, onSuccess }: StoryCreationHookProps)
       if (!publicURLData || !publicURLData.publicUrl) {
         throw new Error('Failed to get public URL');
       }
+      
+      console.log("File uploaded successfully, public URL:", publicURLData.publicUrl);
       
       // Create the story in the database
       const { error: dbError } = await supabase

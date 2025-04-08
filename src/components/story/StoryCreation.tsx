@@ -53,7 +53,7 @@ const StoryCreation: React.FC<StoryCreationProps> = ({
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             maxLength={200}
-            className="resize-none"
+            className="resize-none mt-4"
           />
           
           <input

@@ -17,6 +17,7 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
         size="lg"
         className="flex-1 flex flex-col items-center py-6 gap-2"
         onClick={() => onSelectMediaType('image')}
+        data-testid="select-image-button"
       >
         <Image size={28} />
         <span>Image</span>
@@ -26,6 +27,7 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({
         size="lg"
         className="flex-1 flex flex-col items-center py-6 gap-2"
         onClick={() => onSelectMediaType('video')}
+        data-testid="select-video-button"
       >
         <Video size={28} />
         <span>Video</span>
