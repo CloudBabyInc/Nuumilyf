@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, MoreVertical, Settings } from 'lucide-react';
+import { ChevronLeft, MessageCircle, MoreVertical, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotificationCenter from '../notifications/NotificationCenter';
+import ActionButton from '../shared/ActionButton';
+import { Link } from 'react-router-dom';
 
 interface HeaderProps {
   title?: string;
@@ -68,6 +70,10 @@ const Header = ({
       
       <div className="flex items-center space-x-1">
         {rightContent}
+        
+        <Link to="/chats" className="action-button hover:bg-secondary transition-colors">
+          <MessageCircle className="h-5 w-5" />
+        </Link>
         
         {showSettings && (
           <button 
