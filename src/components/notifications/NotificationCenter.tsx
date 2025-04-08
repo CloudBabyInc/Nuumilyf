@@ -1,188 +1,198 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useNotifications } from '@/hooks/useNotifications';
-import NotificationItem from './NotificationItem';
-import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import NotificationItem from './NotificationItem';
 
 interface NotificationCenterProps {
   className?: string;
 }
 
-const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) => {
-  const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { 
-    notifications, 
-    unreadCount, 
-    isLoading, 
-    markAsRead, 
-    markAllAsRead 
-  } = useNotifications();
+const NotificationCenter = ({ className }: NotificationCenterProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [user, setUser] = useState<any>(null);
 
-  const handleClick = async () => {
-    // Check if user is logged in
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to view your notifications",
-        variant: "destructive"
-      });
-      navigate('/auth');
-      return;
+  useEffect(() => {
+    // Check if the user is logged in
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user || null);
+    };
+    
+    checkAuth();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+  
+  // Fetch notifications when user changes
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .rpc('get_notifications_with_actors', {
+          user_id_param: user.id
+        });
+      
+      if (error) throw error;
+      
+      setNotifications(data || []);
+      
+      // Count unread notifications
+      const unread = data?.filter((n: any) => !n.read) || [];
+      setUnreadCount(unread.length);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpen = () => {
+    if (user) {
+      setIsOpen(true);
+      fetchNotifications();
+    } else {
+      toast.error('Please sign in to view notifications');
+    }
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
+  const handleRead = async (notificationId: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .rpc('mark_notification_as_read', {
+          notification_id_param: notificationId
+        });
+      
+      if (error) throw error;
+      
+      // Update local state
+      setNotifications(notifications.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      ));
+      
+      // Update unread count
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .rpc('mark_all_notifications_as_read', {
+          user_id_param: user.id
+        });
+      
+      if (error) throw error;
+      
+      // Update local state
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+      
+      toast.success('All notifications marked as read');
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      toast.error('Failed to mark all as read');
     }
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className={cn("relative", className)}
-          onClick={handleClick}
-        >
-          <Bell size={18} />
-          {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 h-3.5 w-3.5 rounded-full bg-nuumi-pink text-[9px] flex items-center justify-center text-white font-medium">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-0 border border-border/30 shadow-lg rounded-xl overflow-hidden" align="end">
-        <div className="flex items-center justify-between p-3">
-          <h3 className="font-semibold">Notifications</h3>
-          <div className="flex items-center space-x-2">
-            {unreadCount > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-xs h-8"
-                onClick={markAllAsRead}
-              >
-                Mark all read
-              </Button>
-            )}
-            <Link to="/notifications" onClick={() => setOpen(false)}>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-xs h-8"
-              >
-                View all
-              </Button>
-            </Link>
-          </div>
-        </div>
+    <>
+      <button 
+        onClick={handleOpen} 
+        className={cn(
+          "relative action-button hover:bg-secondary transition-colors",
+          className
+        )}
+      >
+        <Bell className="h-5 w-5" />
         
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 h-9 px-2 pt-2 bg-transparent">
-            <TabsTrigger value="all" className="text-xs rounded-md">All</TabsTrigger>
-            <TabsTrigger value="unread" className="text-xs rounded-md">
-              Unread
-              {unreadCount > 0 && <span className="ml-1 text-nuumi-pink">{unreadCount}</span>}
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all" className="mt-0">
-            <ScrollArea className="h-[350px] overflow-y-auto overscroll-behavior-y-contain" style={{scrollSnapType: 'y mandatory'}}>
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-nuumi-pink text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-bounce-subtle">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+      
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 animate-fade-in">
+          <div className="bg-card rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col animate-slide-up">
+            <div className="flex justify-between items-center p-4 border-b border-border">
+              <h2 className="text-lg font-semibold">Notifications</h2>
+              
+              <div className="flex space-x-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="text-xs text-nuumi-pink hover:text-nuumi-pink/80"
+                  >
+                    Mark all as read
+                  </button>
+                )}
+                
+                <button
+                  onClick={handleClose}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto elastic-scroll">
               {isLoading ? (
-                Array(3).fill(0).map((_, i) => (
-                  <div key={i} className="flex items-start p-3 border-b border-border/10">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <div className="ml-3 flex-1">
-                      <Skeleton className="h-4 w-3/4 mb-2" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                  </div>
-                ))
+                <div className="p-4 text-center text-muted-foreground">
+                  Loading notifications...
+                </div>
               ) : notifications.length > 0 ? (
-                notifications.slice(0, 5).map(notification => (
+                notifications.map((notification) => (
                   <NotificationItem
                     key={notification.id}
                     notification={notification}
-                    onMarkAsRead={markAsRead}
+                    onRead={() => handleRead(notification.id)}
                   />
                 ))
               ) : (
-                <div className="flex items-center justify-center p-6 text-muted-foreground">
+                <div className="p-8 text-center text-muted-foreground">
                   No notifications yet
                 </div>
               )}
-              {notifications.length > 5 && (
-                <div className="p-3 text-center">
-                  <Link 
-                    to="/notifications"
-                    className="text-sm text-nuumi-pink hover:underline" 
-                    onClick={() => setOpen(false)}
-                  >
-                    See all notifications
-                  </Link>
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-          
-          <TabsContent value="unread" className="mt-0">
-            <ScrollArea className="h-[350px] overflow-y-auto overscroll-behavior-y-contain" style={{scrollSnapType: 'y mandatory'}}>
-              {isLoading ? (
-                Array(2).fill(0).map((_, i) => (
-                  <div key={i} className="flex items-start p-3 border-b border-border/10">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <div className="ml-3 flex-1">
-                      <Skeleton className="h-4 w-3/4 mb-2" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                  </div>
-                ))
-              ) : notifications.filter(n => !n.read).length > 0 ? (
-                notifications
-                  .filter(notification => !notification.read)
-                  .slice(0, 5)
-                  .map(notification => (
-                    <NotificationItem
-                      key={notification.id}
-                      notification={notification}
-                      onMarkAsRead={markAsRead}
-                    />
-                  ))
-              ) : (
-                <div className="flex items-center justify-center p-6 text-muted-foreground">
-                  No unread notifications
-                </div>
-              )}
-              {notifications.filter(n => !n.read).length > 5 && (
-                <div className="p-3 text-center">
-                  <Link 
-                    to="/notifications"
-                    className="text-sm text-nuumi-pink hover:underline" 
-                    onClick={() => setOpen(false)}
-                  >
-                    See all unread notifications
-                  </Link>
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
-      </PopoverContent>
-    </Popover>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

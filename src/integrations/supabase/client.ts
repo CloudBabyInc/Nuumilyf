@@ -12,7 +12,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     storage: localStorage,
     detectSessionInUrl: false, // Disable automatic detection of auth redirects
-    flowType: 'implicit' // Use implicit flow for simpler auth
+    flowType: 'implicit', // Use implicit flow for simpler auth
+    debug: import.meta.env.DEV // Enable debug logs in development
   }
 });
 
@@ -21,4 +22,10 @@ export const checkAuthStatus = async () => {
   const { data, error } = await supabase.auth.getSession();
   console.log('Current auth status:', data?.session ? 'Logged in' : 'Logged out', error);
   return { session: data.session, error };
+};
+
+// Helper function to clear local storage session data
+export const clearAuthSession = async () => {
+  await supabase.auth.signOut({ scope: 'local' });
+  return { success: true };
 };

@@ -35,10 +35,17 @@ export function useAuth() {
   const signOut = async () => {
     try {
       console.log('Signing out user');
-      await supabase.auth.signOut({ scope: 'local' });
-      // Clear any local state if needed
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      
+      if (error) throw error;
+      
+      // Clear any local state
       setUser(null);
       setSession(null);
+      
+      // Clear any cached data in localStorage
+      localStorage.removeItem('supabase.auth.token');
+      
       return { success: true };
     } catch (error) {
       console.error('Error signing out:', error);

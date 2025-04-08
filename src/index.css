@@ -55,15 +55,22 @@
     scroll-behavior: smooth;
   }
   
-  /* Improved scrolling for mobile */
+  /* Enhanced bouncy scrolling for mobile */
   * {
     -webkit-overflow-scrolling: touch;
   }
   
-  /* Scroll snap for lists */
+  /* Bounce effect for scroll containers */
+  .overflow-auto, .overflow-y-auto, .overflow-x-auto {
+    overscroll-behavior: auto;
+    scroll-behavior: smooth;
+  }
+  
+  /* Improved scroll snap for lists */
   .snap-scroll {
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
+    overscroll-behavior-x: contain;
   }
   
   .snap-scroll > * {
@@ -88,6 +95,16 @@
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground));
   }
+  
+  /* Remove outline for non-keyboard focus */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+  
+  /* Improve touch targets */
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+  }
 }
 
 @layer utilities {
@@ -99,11 +116,20 @@
     text-wrap: balance;
   }
   
+  /* Enhanced elastic scroll with bounce effect */
   .elastic-scroll {
     overscroll-behavior-y: auto;
     overflow-y: auto;
     scroll-snap-type: y proximity;
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Triple bounce effect for scrolling */
+  .bounce-scroll {
+    scroll-behavior: smooth;
+    overscroll-behavior: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
   .no-scrollbar {
@@ -114,8 +140,19 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+  
+  /* Remove border from any element */
+  .no-border {
+    border: none !important;
+  }
+  
+  /* Seamless container styles */
+  .seamless-container {
+    @apply bg-transparent border-none shadow-none;
+  }
 }
 
+/* Animation keyframes */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -158,6 +195,18 @@
   }
 }
 
+/* Enhanced bounce animation with easing */
+@keyframes enhancedBounce {
+  0%, 100% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(-10px);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.4s ease-out forwards;
@@ -175,6 +224,11 @@
     animation: bounce 2s ease-in-out infinite;
   }
   
+  /* Enhanced bounce animation utility */
+  .animate-bounce-enhanced {
+    animation: enhancedBounce 1s ease-in-out infinite;
+  }
+  
   .animate-delay-100 {
     animation-delay: 100ms;
   }
@@ -187,7 +241,37 @@
     animation-delay: 300ms;
   }
   
+  /* Bouncy transition timing function */
   .transition-bounce {
     transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+  
+  /* Triple easing for animations */
+  .transition-triple-ease {
+    transition-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+}
+
+/* Tab scroller improvements */
+.tab-scroller {
+  @apply flex overflow-x-auto snap-scroll no-scrollbar pb-2;
+  scroll-padding: 0 1rem;
+}
+
+.tab-scroller > * {
+  @apply snap-start flex-shrink-0;
+}
+
+/* Seamless components */
+.seamless-header {
+  @apply bg-transparent border-b-0 shadow-none;
+}
+
+.seamless-card {
+  @apply bg-transparent border-0 shadow-none;
+}
+
+/* Uniform button sizes for actions */
+.action-button {
+  @apply h-10 w-10 flex items-center justify-center rounded-full;
 }
