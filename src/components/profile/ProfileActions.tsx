@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PenSquare, Link as LinkIcon, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +32,11 @@ const ProfileActions = ({
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(isFollowing);
   
+  // Update the connected state when the isFollowing prop changes
+  useEffect(() => {
+    setIsConnected(isFollowing);
+  }, [isFollowing]);
+  
   const handleConnectClick = async () => {
     if (!userId) return;
     
@@ -60,15 +65,27 @@ const ProfileActions = ({
         
         if (onFollow) onFollow();
       } else {
-        // Connect logic
-        const { error } = await supabase
+        // Connect logic - first check if the connection already exists
+        const { data: existingFollow, error: checkError } = await supabase
           .from('followers')
-          .insert({
-            follower_id: session.session.user.id,
-            following_id: userId
-          });
+          .select('id')
+          .eq('follower_id', session.session.user.id)
+          .eq('following_id', userId)
+          .maybeSingle();
           
-        if (error) throw error;
+        if (checkError) throw checkError;
+        
+        // Only insert if no existing connection
+        if (!existingFollow) {
+          const { error } = await supabase
+            .from('followers')
+            .insert({
+              follower_id: session.session.user.id,
+              following_id: userId
+            });
+            
+          if (error) throw error;
+        }
         
         setIsConnected(true);
         toast.success('Successfully connected');

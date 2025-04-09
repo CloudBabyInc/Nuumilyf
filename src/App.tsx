@@ -26,6 +26,8 @@ const ConditionalNavbar = () => {
   
   // Only show navbar on these routes
   const showNavbarRoutes = ['/feed', '/chats', '/profile', '/marketplace', '/create', '/notifications'];
+  
+  // Routes that should hide the navbar (like when in a specific conversation)
   const hideNavbarRoutes = ['/chats/'];
   
   // Check if the current route matches any of the routes that should hide the navbar

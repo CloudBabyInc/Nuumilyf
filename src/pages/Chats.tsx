@@ -72,6 +72,118 @@ const ChatsMainPage = () => {
   );
 };
 
+// Single user chat - direct messages from a profile
+const DirectMessagePage = () => {
+  const { userId } = useParams<{ userId: string }>();
+  const [session, setSession] = useState<any>(null);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+  }, []);
+  
+  useEffect(() => {
+    const initializeDirectMessage = async () => {
+      if (!session || !userId) return;
+      
+      try {
+        setLoading(true);
+        
+        // Check if the user exists
+        const { data: userProfile, error: userError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', userId)
+          .single();
+          
+        if (userError || !userProfile) {
+          toast.error('User not found');
+          navigate('/chats');
+          return;
+        }
+        
+        // Check if a conversation already exists between these users
+        const { data: existingConversations, error: conversationError } = await supabase
+          .from('conversations')
+          .select('id, conversation_participants(user_id)')
+          .or(`and(id.in.(select conversation_id from conversation_participants where user_id=${session.user.id}),id.in.(select conversation_id from conversation_participants where user_id=${userId}))`);
+        
+        if (conversationError) throw conversationError;
+        
+        // Find conversation with exactly these two participants
+        let matchingConversationId: string | null = null;
+        
+        if (existingConversations && existingConversations.length > 0) {
+          for (const conversation of existingConversations) {
+            const participants = conversation.conversation_participants as { user_id: string }[];
+            if (participants.length === 2) {
+              const hasCurrentUser = participants.some(p => p.user_id === session.user.id);
+              const hasSelectedUser = participants.some(p => p.user_id === userId);
+              
+              if (hasCurrentUser && hasSelectedUser) {
+                matchingConversationId = conversation.id;
+                break;
+              }
+            }
+          }
+        }
+        
+        if (matchingConversationId) {
+          // Conversation exists, navigate to it
+          navigate(`/chats/${matchingConversationId}`);
+          return;
+        }
+        
+        // Create new conversation
+        const { data: newConversation, error: newConversationError } = await supabase
+          .from('conversations')
+          .insert({})
+          .select('id')
+          .single();
+          
+        if (newConversationError) throw newConversationError;
+        
+        // Add current user as participant
+        await supabase.from('conversation_participants').insert({
+          conversation_id: newConversation.id,
+          user_id: session.user.id
+        });
+        
+        // Add the other user as participant
+        await supabase.from('conversation_participants').insert({
+          conversation_id: newConversation.id,
+          user_id: userId
+        });
+        
+        // Navigate to the new conversation
+        navigate(`/chats/${newConversation.id}`);
+        
+      } catch (error) {
+        console.error('Error creating direct message:', error);
+        toast.error('Failed to start conversation');
+        navigate('/chats');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    initializeDirectMessage();
+  }, [session, userId, navigate]);
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-nuumi-pink" />
+      </div>
+    );
+  }
+  
+  return null; // This component will redirect to either /chats or /chats/:conversationId
+};
+
 // Conversation Component
 const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
@@ -98,6 +210,21 @@ const ConversationPage = () => {
     
     const fetchConversation = async () => {
       setLoading(true);
+      
+      // First validate the conversation exists and user is a participant
+      const { data: userParticipation, error: participationError } = await supabase
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', session.user.id)
+        .single();
+        
+      if (participationError || !userParticipation) {
+        console.error('Error validating conversation access:', participationError);
+        toast.error('You don\'t have access to this conversation');
+        navigate('/chats');
+        return;
+      }
       
       // Get the other participant
       const { data: participants, error: participantsError } = await supabase
@@ -279,6 +406,7 @@ const Chats = () => {
   return (
     <Routes>
       <Route path="/" element={<ChatsMainPage />} />
+      <Route path="/user/:userId" element={<DirectMessagePage />} />
       <Route path="/:conversationId" element={<ConversationPage />} />
     </Routes>
   );

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import Avatar from '../shared/Avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 interface ConnectedUser {
   id: string;
@@ -84,51 +85,72 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
     }
     
     try {
-      // Check if conversation already exists
-      const { data: existingParticipants, error: participantsError } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', currentUserId);
+      // First check if conversation already exists
+      const { data: existingConversations, error: conversationError } = await supabase
+        .from('conversations')
+        .select('id, conversation_participants(user_id)')
+        .or(`and(id.in.(select conversation_id from conversation_participants where user_id=${currentUserId}),id.in.(select conversation_id from conversation_participants where user_id=${userId}))`);
         
-      if (participantsError) throw participantsError;
+      if (conversationError) throw conversationError;
       
-      if (existingParticipants && existingParticipants.length > 0) {
-        const conversationIds = existingParticipants.map(p => p.conversation_id);
-        
-        const { data: otherParticipants, error: otherParticipantsError } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .in('conversation_id', conversationIds)
-          .eq('user_id', userId);
-          
-        if (otherParticipantsError) throw otherParticipantsError;
-        
-        if (otherParticipants && otherParticipants.length > 0) {
-          // Conversation exists, navigate to it
-          navigate(`/chats/${otherParticipants[0].conversation_id}`);
-          return;
+      // Filter conversations with exactly 2 participants (the current user and the selected user)
+      let matchingConversationId: string | null = null;
+      
+      if (existingConversations && existingConversations.length > 0) {
+        for (const conversation of existingConversations) {
+          const participants = conversation.conversation_participants as { user_id: string }[];
+          if (participants.length === 2) {
+            const hasCurrentUser = participants.some(p => p.user_id === currentUserId);
+            const hasSelectedUser = participants.some(p => p.user_id === userId);
+            
+            if (hasCurrentUser && hasSelectedUser) {
+              matchingConversationId = conversation.id;
+              break;
+            }
+          }
         }
       }
       
-      // Create new conversation
-      const { data: newConversation, error: conversationError } = await supabase
+      if (matchingConversationId) {
+        // Conversation already exists, navigate to it
+        navigate(`/chats/${matchingConversationId}`);
+        return;
+      }
+      
+      // Create new conversation if it doesn't exist
+      const { data: newConversation, error: newConversationError } = await supabase
         .from('conversations')
         .insert({})
         .select('id')
         .single();
         
-      if (conversationError) throw conversationError;
+      if (newConversationError) throw newConversationError;
       
-      // Add participants
-      await supabase.from('conversation_participants').insert([
-        { conversation_id: newConversation.id, user_id: currentUserId },
-        { conversation_id: newConversation.id, user_id: userId }
-      ]);
+      // Add participants - do this one at a time to avoid potential issues
+      const { error: currentUserError } = await supabase
+        .from('conversation_participants')
+        .insert({
+          conversation_id: newConversation.id,
+          user_id: currentUserId
+        });
+        
+      if (currentUserError) throw currentUserError;
+      
+      const { error: otherUserError } = await supabase
+        .from('conversation_participants')
+        .insert({
+          conversation_id: newConversation.id,
+          user_id: userId
+        });
+        
+      if (otherUserError) throw otherUserError;
       
       // Navigate to new conversation
       navigate(`/chats/${newConversation.id}`);
+      
     } catch (error) {
       console.error('Error creating conversation:', error);
+      toast.error('Failed to create conversation');
     }
   };
   

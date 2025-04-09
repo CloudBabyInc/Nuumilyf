@@ -85,6 +85,8 @@ const Header = ({
           <MessageCircle className="h-5 w-5" />
         </Link>
         
+        <NotificationCenter className="action-button" />
+        
         {showSettings && (
           <button 
             onClick={handleSettingsClick}
@@ -97,8 +99,6 @@ const Header = ({
             )}
           </button>
         )}
-        
-        <NotificationCenter className="action-button" />
       </div>
     </header>
   );
