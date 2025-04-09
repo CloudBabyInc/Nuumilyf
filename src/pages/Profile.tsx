@@ -296,7 +296,7 @@ const Profile = () => {
     }
   };
 
-  const handleStartChat = async () => {
+  const handleStartChat = () => {
     if (!currentUser) {
       navigate('/auth');
       return;
@@ -304,62 +304,7 @@ const Profile = () => {
     
     if (!profile?.id || currentUser.id === profile.id) return;
     
-    try {
-      const { data: existingParticipants, error: participantsError } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', currentUser.id);
-        
-      if (participantsError) throw participantsError;
-      
-      if (existingParticipants && existingParticipants.length > 0) {
-        const conversationIds = existingParticipants.map(p => p.conversation_id);
-        
-        const { data: otherParticipants, error: otherParticipantsError } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .in('conversation_id', conversationIds)
-          .eq('user_id', profile.id);
-          
-        if (otherParticipantsError) throw otherParticipantsError;
-        
-        if (otherParticipants && otherParticipants.length > 0) {
-          navigate(`/chats/${otherParticipants[0].conversation_id}`);
-          return;
-        }
-      }
-      
-      const { data: newConversation, error: conversationError } = await supabase
-        .from('conversations')
-        .insert({})
-        .select('id')
-        .single();
-        
-      if (conversationError) throw conversationError;
-      
-      const { error: currentUserPartError } = await supabase
-        .from('conversation_participants')
-        .insert({
-          conversation_id: newConversation.id,
-          user_id: currentUser.id
-        });
-        
-      if (currentUserPartError) throw currentUserPartError;
-      
-      const { error: otherUserPartError } = await supabase
-        .from('conversation_participants')
-        .insert({
-          conversation_id: newConversation.id,
-          user_id: profile.id
-        });
-        
-      if (otherUserPartError) throw otherUserPartError;
-      
-      navigate(`/chats/${newConversation.id}`);
-    } catch (error) {
-      console.error('Error starting chat:', error);
-      toast.error('Failed to start conversation');
-    }
+    navigate(`/chats/user/${profile.id}`);
   };
 
   const handleLike = async (postId: string) => {

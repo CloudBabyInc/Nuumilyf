@@ -105,29 +105,32 @@ const DirectMessagePage = () => {
           return;
         }
         
-        // Check if a conversation already exists between these users
-        const { data: existingConversations, error: conversationError } = await supabase
-          .from('conversations')
-          .select('id, conversation_participants(user_id)')
-          .or(`and(id.in.(select conversation_id from conversation_participants where user_id=${session.user.id}),id.in.(select conversation_id from conversation_participants where user_id=${userId}))`);
+        // Get the conversation participants and find conversations that have both users
+        // First get currentUser's participants
+        const { data: myParticipants, error: myParticipantsError } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', session.user.id);
         
-        if (conversationError) throw conversationError;
+        if (myParticipantsError) throw myParticipantsError;
         
-        // Find conversation with exactly these two participants
         let matchingConversationId: string | null = null;
         
-        if (existingConversations && existingConversations.length > 0) {
-          for (const conversation of existingConversations) {
-            const participants = conversation.conversation_participants as { user_id: string }[];
-            if (participants.length === 2) {
-              const hasCurrentUser = participants.some(p => p.user_id === session.user.id);
-              const hasSelectedUser = participants.some(p => p.user_id === userId);
-              
-              if (hasCurrentUser && hasSelectedUser) {
-                matchingConversationId = conversation.id;
-                break;
-              }
-            }
+        if (myParticipants && myParticipants.length > 0) {
+          const conversationIds = myParticipants.map(p => p.conversation_id);
+          
+          // Find conversations where the other user is also a participant
+          const { data: otherParticipants, error: otherError } = await supabase
+            .from('conversation_participants')
+            .select('conversation_id')
+            .eq('user_id', userId)
+            .in('conversation_id', conversationIds);
+            
+          if (otherError) throw otherError;
+          
+          // If there's a match, use the first conversation found
+          if (otherParticipants && otherParticipants.length > 0) {
+            matchingConversationId = otherParticipants[0].conversation_id;
           }
         }
         
@@ -137,7 +140,7 @@ const DirectMessagePage = () => {
           return;
         }
         
-        // Create new conversation
+        // Create new conversation if none exists
         const { data: newConversation, error: newConversationError } = await supabase
           .from('conversations')
           .insert({})
@@ -161,7 +164,7 @@ const DirectMessagePage = () => {
         // Navigate to the new conversation
         navigate(`/chats/${newConversation.id}`);
         
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error creating direct message:', error);
         toast.error('Failed to start conversation');
         navigate('/chats');
