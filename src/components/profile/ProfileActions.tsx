@@ -104,7 +104,8 @@ const ProfileActions = ({
     if (onMessage) {
       onMessage();
     } else if (userId) {
-      navigate(`/chats/${userId}`);
+      // Use the alternate route for chat initiation
+      navigate(`/chats/user/${userId}`);
     }
   };
 

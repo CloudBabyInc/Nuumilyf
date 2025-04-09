@@ -78,80 +78,14 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
     fetchConnectedUsers();
   }, [currentUserId]);
   
-  const startChat = async (userId: string) => {
+  const startChat = (userId: string) => {
     if (!currentUserId) {
       navigate('/auth');
       return;
     }
     
-    try {
-      // First check if conversation already exists
-      const { data: existingConversations, error: conversationError } = await supabase
-        .from('conversations')
-        .select('id, conversation_participants(user_id)')
-        .or(`and(id.in.(select conversation_id from conversation_participants where user_id=${currentUserId}),id.in.(select conversation_id from conversation_participants where user_id=${userId}))`);
-        
-      if (conversationError) throw conversationError;
-      
-      // Filter conversations with exactly 2 participants (the current user and the selected user)
-      let matchingConversationId: string | null = null;
-      
-      if (existingConversations && existingConversations.length > 0) {
-        for (const conversation of existingConversations) {
-          const participants = conversation.conversation_participants as { user_id: string }[];
-          if (participants.length === 2) {
-            const hasCurrentUser = participants.some(p => p.user_id === currentUserId);
-            const hasSelectedUser = participants.some(p => p.user_id === userId);
-            
-            if (hasCurrentUser && hasSelectedUser) {
-              matchingConversationId = conversation.id;
-              break;
-            }
-          }
-        }
-      }
-      
-      if (matchingConversationId) {
-        // Conversation already exists, navigate to it
-        navigate(`/chats/${matchingConversationId}`);
-        return;
-      }
-      
-      // Create new conversation if it doesn't exist
-      const { data: newConversation, error: newConversationError } = await supabase
-        .from('conversations')
-        .insert({})
-        .select('id')
-        .single();
-        
-      if (newConversationError) throw newConversationError;
-      
-      // Add participants - do this one at a time to avoid potential issues
-      const { error: currentUserError } = await supabase
-        .from('conversation_participants')
-        .insert({
-          conversation_id: newConversation.id,
-          user_id: currentUserId
-        });
-        
-      if (currentUserError) throw currentUserError;
-      
-      const { error: otherUserError } = await supabase
-        .from('conversation_participants')
-        .insert({
-          conversation_id: newConversation.id,
-          user_id: userId
-        });
-        
-      if (otherUserError) throw otherUserError;
-      
-      // Navigate to new conversation
-      navigate(`/chats/${newConversation.id}`);
-      
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      toast.error('Failed to create conversation');
-    }
+    // Use the direct route that handles conversation creation
+    navigate(`/chats/user/${userId}`);
   };
   
   if (loading) {
