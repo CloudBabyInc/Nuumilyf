@@ -12,6 +12,7 @@ import EditProfileDialog from '@/components/profile/EditProfileDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Post from '@/components/shared/Post';
+import Navbar from '@/components/layout/Navbar';
 
 interface ProfilePageParams {
   [key: string]: string | undefined;
@@ -38,13 +39,10 @@ const Profile = () => {
       const { data } = await supabase.auth.getSession();
       setCurrentUser(data.session?.user || null);
       
-      // Check if we're viewing our own profile or someone else's
       if (data.session?.user) {
         if (!userId) {
-          // No userId in URL means viewing own profile
           setIsCurrentUserProfile(true);
         } else {
-          // Compare the URL userId with current user's ID
           setIsCurrentUserProfile(userId === data.session.user.id);
         }
       } else {
@@ -60,7 +58,6 @@ const Profile = () => {
       (event, session) => {
         setCurrentUser(session?.user || null);
         
-        // Update currentUserProfile state when auth state changes
         if (session?.user) {
           if (!userId) {
             setIsCurrentUserProfile(true);
@@ -308,7 +305,6 @@ const Profile = () => {
     if (!profile?.id || currentUser.id === profile.id) return;
     
     try {
-      // Check if conversation already exists
       const { data: existingParticipants, error: participantsError } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
@@ -328,13 +324,11 @@ const Profile = () => {
         if (otherParticipantsError) throw otherParticipantsError;
         
         if (otherParticipants && otherParticipants.length > 0) {
-          // Conversation exists, navigate to it
           navigate(`/chats/${otherParticipants[0].conversation_id}`);
           return;
         }
       }
       
-      // Create new conversation if it doesn't exist
       const { data: newConversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({})
@@ -343,7 +337,6 @@ const Profile = () => {
         
       if (conversationError) throw conversationError;
       
-      // Add participants to the conversation
       const { error: currentUserPartError } = await supabase
         .from('conversation_participants')
         .insert({
