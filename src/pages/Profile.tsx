@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
-import Navbar from '@/components/layout/Navbar';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileStats from '@/components/profile/ProfileStats';
 import ProfileBio from '@/components/profile/ProfileBio';
 import ProfileActions from '@/components/profile/ProfileActions';
 import SupportCard from '@/components/support/SupportCard';
-import { Utensils, Baby, Wallet, MapPin, Loader2, Camera } from 'lucide-react';
+import { Utensils, Baby, Wallet, MapPin, Loader2, Camera, MessageCircle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import EditProfileDialog from '@/components/profile/EditProfileDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Post from '@/components/shared/Post';
-import { MessageCircle } from 'lucide-react';
 
 interface ProfilePageParams {
   [key: string]: string | undefined;
@@ -32,12 +30,27 @@ const Profile = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [postsCount, setPostsCount] = useState(0);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [isCurrentUserProfile, setIsCurrentUserProfile] = useState(false);
 
   useEffect(() => {
     const checkSession = async () => {
       setIsLoadingSession(true);
       const { data } = await supabase.auth.getSession();
       setCurrentUser(data.session?.user || null);
+      
+      // Check if we're viewing our own profile or someone else's
+      if (data.session?.user) {
+        if (!userId) {
+          // No userId in URL means viewing own profile
+          setIsCurrentUserProfile(true);
+        } else {
+          // Compare the URL userId with current user's ID
+          setIsCurrentUserProfile(userId === data.session.user.id);
+        }
+      } else {
+        setIsCurrentUserProfile(false);
+      }
+      
       setIsLoadingSession(false);
     };
     
@@ -46,13 +59,24 @@ const Profile = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setCurrentUser(session?.user || null);
+        
+        // Update currentUserProfile state when auth state changes
+        if (session?.user) {
+          if (!userId) {
+            setIsCurrentUserProfile(true);
+          } else {
+            setIsCurrentUserProfile(userId === session.user.id);
+          }
+        } else {
+          setIsCurrentUserProfile(false);
+        }
       }
     );
     
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -391,8 +415,8 @@ const Profile = () => {
     }
   };
 
-  const displayName = profile?.display_name || 'Your Story';
-  const username = profile?.username || 'your.story';
+  const displayName = profile?.display_name || 'User Profile';
+  const username = profile?.username || 'username';
   const location = profile?.location;
   const bio = profile?.bio;
   const avatarUrl = profile?.avatar_url;
@@ -405,18 +429,21 @@ const Profile = () => {
     );
   }
 
+  const pageTitle = isCurrentUserProfile ? "My Profile" : displayName;
+  
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header 
-        title="Profile" 
-        showSettings 
-        onSettingsClick={() => console.log('Settings clicked')}
+        title={pageTitle} 
+        showSettings={isCurrentUserProfile}
+        showBackButton={!isCurrentUserProfile}
+        onBackClick={() => navigate(-1)}
       />
       
       <div className="max-w-md mx-auto">
         <ProfileHeader 
           avatar={avatarUrl || undefined}
-          onAvatarClick={handleAvatarClick}
+          onAvatarClick={isCurrentUserProfile ? handleAvatarClick : () => {}}
         />
         
         <ProfileStats 
@@ -433,43 +460,41 @@ const Profile = () => {
           bio={bio || undefined}
           location={location || undefined}
         >
-          {!location && (
+          {isCurrentUserProfile && !location && (
             <div className="flex items-center text-sm text-muted-foreground mb-1 justify-center">
               <MapPin size={14} className="mr-1 text-nuumi-pink" />
               <span>Add your neighborhood</span>
             </div>
           )}
           
-          {!bio && (
+          {isCurrentUserProfile && !bio && (
             <div className="text-sm text-muted-foreground">
               Add child age • Add dietary needs{' '}
-              {currentUser?.id === profile?.id && (
-                <EditProfileDialog 
-                  trigger={
-                    <span className="text-nuumi-pink ml-1 font-medium cursor-pointer">Edit</span>
-                  }
-                  initialData={{
-                    username: username === 'your.story' ? '' : username,
-                    displayName: displayName === 'Your Story' ? '' : displayName,
-                    bio: bio || '',
-                    location: location || '',
-                    avatarUrl: avatarUrl || undefined
-                  }}
-                />
-              )}
+              <EditProfileDialog 
+                trigger={
+                  <span className="text-nuumi-pink ml-1 font-medium cursor-pointer">Edit</span>
+                }
+                initialData={{
+                  username: username === 'username' ? '' : username,
+                  displayName: displayName === 'User Profile' ? '' : displayName,
+                  bio: bio || '',
+                  location: location || '',
+                  avatarUrl: avatarUrl || undefined
+                }}
+              />
             </div>
           )}
         </ProfileBio>
         
         <ProfileActions
-          isCurrentUser={currentUser?.id === profile?.id}
+          isCurrentUser={isCurrentUserProfile}
           onEditProfile={() => {}}
           isFollowing={isFollowing}
           userId={profile?.id}
           onFollow={handleFollowToggle}
           onMessage={handleStartChat}
           editProfileButton={
-            currentUser?.id === profile?.id ? (
+            isCurrentUserProfile ? (
               <EditProfileDialog 
                 trigger={
                   <button className="w-full bg-nuumi-pink text-white rounded-full py-2.5 font-medium flex items-center justify-center transition-all hover:bg-nuumi-pink/90 mb-6">
@@ -478,8 +503,8 @@ const Profile = () => {
                   </button>
                 }
                 initialData={{
-                  username: username === 'your.story' ? '' : username,
-                  displayName: displayName === 'Your Story' ? '' : displayName,
+                  username: username === 'username' ? '' : username,
+                  displayName: displayName === 'User Profile' ? '' : displayName,
                   bio: bio || '',
                   location: location || '',
                   avatarUrl: avatarUrl || undefined
@@ -510,7 +535,7 @@ const Profile = () => {
           }
         />
         
-        {currentUser?.id === profile?.id && (
+        {isCurrentUserProfile && (
           <div className="px-4">
             <button 
               className="w-full bg-nuumi-pink text-white rounded-full py-3 font-medium transition-all hover:bg-nuumi-pink/90 mb-8"
@@ -553,7 +578,7 @@ const Profile = () => {
                 <Post
                   key={post.id}
                   author={{
-                    id: post.author.id, // Pass the author ID
+                    id: post.author.id,
                     name: post.author.name,
                     username: post.author.username,
                     avatar: post.author.avatar_url || undefined,
@@ -575,7 +600,7 @@ const Profile = () => {
             </div>
           ) : (
             <div className="py-10 text-center text-muted-foreground">
-              <p>{currentUser?.id === profile?.id ? 'Share your first post with other moms' : 'No posts yet'}</p>
+              <p>{isCurrentUserProfile ? 'Share your first post with other moms' : 'No posts yet'}</p>
             </div>
           )}
         </div>
