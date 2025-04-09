@@ -31,12 +31,10 @@ const Feed = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
 
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
@@ -79,7 +77,6 @@ const Feed = () => {
           return null;
         }
         
-        // Determine media type based on file extension
         const mediaType = story.image_url && (
           story.image_url.endsWith('.mp4') || 
           story.image_url.endsWith('.mov') || 
@@ -106,48 +103,41 @@ const Feed = () => {
       return storiesWithProfiles.filter(Boolean) as StoryItem[];
     },
     enabled: !!session,
-    refetchInterval: 60000, // Refetch every minute to check for expired stories
+    refetchInterval: 60000,
   });
 
-  // Set up real-time subscriptions
   useEffect(() => {
     if (!session) return;
     
-    // Subscribe to real-time updates for posts
     const postsChannel = supabase
       .channel('public:posts')
       .on('postgres_changes', {
-        event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+        event: '*',
         schema: 'public',
         table: 'posts',
       }, () => {
-        // When posts change, invalidate the posts query
         queryClient.invalidateQueries({ queryKey: ['posts'] });
       })
       .subscribe();
       
-    // Subscribe to real-time updates for likes
     const likesChannel = supabase
       .channel('public:likes')
       .on('postgres_changes', {
-        event: '*', // Listen for all events
+        event: '*',
         schema: 'public',
         table: 'likes',
       }, () => {
-        // When likes change, invalidate the posts query
         queryClient.invalidateQueries({ queryKey: ['posts'] });
       })
       .subscribe();
       
-    // Subscribe to real-time updates for comments
     const commentsChannel = supabase
       .channel('public:comments')
       .on('postgres_changes', {
-        event: '*', // Listen for all events
+        event: '*',
         schema: 'public',
         table: 'comments',
       }, () => {
-        // When comments change, invalidate the posts query
         queryClient.invalidateQueries({ queryKey: ['posts'] });
       })
       .subscribe();
@@ -386,6 +376,7 @@ const Feed = () => {
             <Post
               key={post.id}
               author={{
+                id: post.author.id,
                 name: post.author.name,
                 username: post.author.username,
                 avatar: post.author.avatar_url || undefined,

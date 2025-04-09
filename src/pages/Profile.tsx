@@ -6,13 +6,14 @@ import ProfileStats from '@/components/profile/ProfileStats';
 import ProfileBio from '@/components/profile/ProfileBio';
 import ProfileActions from '@/components/profile/ProfileActions';
 import SupportCard from '@/components/support/SupportCard';
-import { Utensils, Baby, Wallet, MapPin, Loader2, Camera, MessageCircle } from 'lucide-react';
+import { Utensils, Baby, Wallet, MapPin, Loader2, Camera } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import EditProfileDialog from '@/components/profile/EditProfileDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Post from '@/components/shared/Post';
+import { MessageCircle } from 'lucide-react';
 
 interface ProfilePageParams {
   [key: string]: string | undefined;
@@ -283,30 +284,33 @@ const Profile = () => {
     if (!profile?.id || currentUser.id === profile.id) return;
     
     try {
-      const { data: existingParticipations, error: participationError } = await supabase
+      // Check if conversation already exists
+      const { data: existingParticipants, error: participantsError } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
         .eq('user_id', currentUser.id);
         
-      if (participationError) throw participationError;
+      if (participantsError) throw participantsError;
       
-      if (existingParticipations && existingParticipations.length > 0) {
-        const conversationIds = existingParticipations.map(p => p.conversation_id);
+      if (existingParticipants && existingParticipants.length > 0) {
+        const conversationIds = existingParticipants.map(p => p.conversation_id);
         
-        const { data: otherParticipations, error: otherPartError } = await supabase
+        const { data: otherParticipants, error: otherParticipantsError } = await supabase
           .from('conversation_participants')
-          .select('conversation_id, user_id')
+          .select('conversation_id')
           .in('conversation_id', conversationIds)
           .eq('user_id', profile.id);
           
-        if (otherPartError) throw otherPartError;
+        if (otherParticipantsError) throw otherParticipantsError;
         
-        if (otherParticipations && otherParticipations.length > 0) {
-          navigate(`/chats/${otherParticipations[0].conversation_id}`);
+        if (otherParticipants && otherParticipants.length > 0) {
+          // Conversation exists, navigate to it
+          navigate(`/chats/${otherParticipants[0].conversation_id}`);
           return;
         }
       }
       
+      // Create new conversation if it doesn't exist
       const { data: newConversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({})
@@ -315,6 +319,7 @@ const Profile = () => {
         
       if (conversationError) throw conversationError;
       
+      // Add participants to the conversation
       const { error: currentUserPartError } = await supabase
         .from('conversation_participants')
         .insert({
@@ -459,6 +464,10 @@ const Profile = () => {
         <ProfileActions
           isCurrentUser={currentUser?.id === profile?.id}
           onEditProfile={() => {}}
+          isFollowing={isFollowing}
+          userId={profile?.id}
+          onFollow={handleFollowToggle}
+          onMessage={handleStartChat}
           editProfileButton={
             currentUser?.id === profile?.id ? (
               <EditProfileDialog 
@@ -544,6 +553,7 @@ const Profile = () => {
                 <Post
                   key={post.id}
                   author={{
+                    id: post.author.id, // Pass the author ID
                     name: post.author.name,
                     username: post.author.username,
                     avatar: post.author.avatar_url || undefined,

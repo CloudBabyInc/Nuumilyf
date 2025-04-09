@@ -3,6 +3,7 @@ import React from 'react';
 import { Heart, MessageSquare, Repeat2, Send } from 'lucide-react';
 import Avatar from './Avatar';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface PostProps {
   author: {
@@ -11,6 +12,7 @@ interface PostProps {
     avatar?: string;
     isVerified?: boolean;
     timeAgo: string;
+    id: string; // Add author ID
   };
   content: string;
   image?: string;
@@ -37,13 +39,30 @@ const Post = ({
   onRepost,
   onShare
 }: PostProps) => {
+  const navigate = useNavigate();
+  
+  const handleProfileClick = () => {
+    navigate(`/profile/${author.id}`);
+  };
+  
   return (
     <div className="bg-card rounded-xl p-4 mb-3 animate-fade-in">
       <div className="flex items-start mb-3">
-        <Avatar src={author.avatar} alt={author.name} size="md" />
+        <Avatar 
+          src={author.avatar} 
+          alt={author.name} 
+          size="md" 
+          onClick={handleProfileClick}
+          className="cursor-pointer"
+        />
         <div className="ml-3 flex flex-col">
           <div className="flex items-center">
-            <h4 className="font-semibold text-foreground">{author.name}</h4>
+            <h4 
+              className="font-semibold text-foreground cursor-pointer hover:underline" 
+              onClick={handleProfileClick}
+            >
+              {author.name}
+            </h4>
             {author.isVerified && (
               <span className="ml-1 text-nuumi-pink">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -53,7 +72,12 @@ const Post = ({
             )}
             <span className="text-sm text-muted-foreground ml-2">· {author.timeAgo}</span>
           </div>
-          <span className="text-sm text-muted-foreground">@{author.username}</span>
+          <span 
+            className="text-sm text-muted-foreground cursor-pointer hover:underline" 
+            onClick={handleProfileClick}
+          >
+            @{author.username}
+          </span>
         </div>
       </div>
       

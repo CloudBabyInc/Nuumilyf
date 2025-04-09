@@ -8,12 +8,15 @@ import ChatList from '@/components/chat/ChatList';
 import ChatHeader from '@/components/chat/ChatHeader';
 import MessageList from '@/components/chat/MessageList';
 import MessageInput from '@/components/chat/MessageInput';
+import ConnectedUsersList from '@/components/chat/ConnectedUsersList';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Main Chats Page Component
 const ChatsMainPage = () => {
   const [session, setSession] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<string>('recent');
   
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -32,9 +35,32 @@ const ChatsMainPage = () => {
       <Header title="Messages" />
       
       <div className="max-w-md mx-auto pt-2 pb-20">
-        <ChatList currentUserId={session?.user?.id} />
-        
-        {!session && (
+        {session ? (
+          <Tabs 
+            defaultValue="recent" 
+            className="w-full"
+            onValueChange={setActiveTab}
+          >
+            <TabsList className="grid grid-cols-2 mb-4">
+              <TabsTrigger value="recent">Recent Chats</TabsTrigger>
+              <TabsTrigger value="connected">Connections</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="recent" className="mt-0">
+              <ChatList currentUserId={session?.user?.id} />
+            </TabsContent>
+            
+            <TabsContent value="connected" className="mt-0">
+              <div className="bg-card rounded-lg overflow-hidden">
+                <div className="p-4 bg-muted/50 border-b flex items-center">
+                  <Users size={18} className="mr-2 text-nuumi-pink" />
+                  <h3 className="font-medium">My Connections</h3>
+                </div>
+                <ConnectedUsersList currentUserId={session?.user?.id} />
+              </div>
+            </TabsContent>
+          </Tabs>
+        ) : (
           <div className="text-center mt-10">
             <p className="text-muted-foreground">Please sign in to view your messages</p>
           </div>
