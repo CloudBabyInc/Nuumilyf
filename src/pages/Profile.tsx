@@ -233,7 +233,7 @@ const Profile = () => {
   }, [profile?.id, currentUser?.id]);
 
   const handleAvatarClick = (event: React.MouseEvent) => {
-    if (currentUser?.id === profile?.id) {
+    if (isCurrentUserProfile) {
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = 'image/*';
@@ -381,7 +381,8 @@ const Profile = () => {
       <div className="max-w-md mx-auto">
         <ProfileHeader 
           avatar={avatarUrl || undefined}
-          onAvatarClick={isCurrentUserProfile ? handleAvatarClick : () => {}}
+          onAvatarClick={handleAvatarClick}
+          isCurrentUser={isCurrentUserProfile}
         />
         
         <ProfileStats 
