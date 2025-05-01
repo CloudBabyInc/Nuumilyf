@@ -1,13 +1,11 @@
 
 import React, { useState } from 'react';
-import { Home, Plus, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import ActionButton from '../shared/ActionButton';
 
 interface NavItemProps {
-  icon: React.ElementType;
+  emoji: string;
   label: string;
   path: string;
   isActive: boolean;
@@ -15,7 +13,7 @@ interface NavItemProps {
   badge?: number;
 }
 
-const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }: NavItemProps) => (
+const NavItem = ({ emoji, label, path, isActive, onClick, badge }: NavItemProps) => (
   <Link
     to={path}
     className="flex flex-col items-center justify-center relative"
@@ -23,24 +21,22 @@ const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }: NavItemP
   >
     <div className={cn(
       "relative flex items-center justify-center transition-all duration-300",
-      isActive ? "text-nuumi-pink scale-105" : "text-muted-foreground scale-100 hover:text-foreground"
+      isActive ? "scale-110" : "scale-100"
     )}>
       {isActive && (
         <motion.div
           layoutId="navIndicator"
-          className="absolute inset-0 bg-nuumi-pink/10 rounded-full -m-1.5 w-8 h-8"
+          className="absolute inset-0 bg-nuumi-pink/10 rounded-full -m-1.5 w-9 h-9"
           initial={false}
           transition={{ type: "spring", duration: 0.5 }}
         />
       )}
-      <Icon
-        size={20}
-        strokeWidth={isActive ? 2.5 : 2}
-        className={cn(
-          "transition-all duration-300",
-          isActive && "drop-shadow-[0_0_2px_rgba(255,105,180,0.6)]"
-        )}
-      />
+      <span className={cn(
+        "text-xl transition-all duration-300",
+        isActive && "drop-shadow-[0_0_2px_rgba(255,105,180,0.6)]"
+      )}>
+        {emoji}
+      </span>
       {badge !== undefined && badge > 0 && (
         <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-nuumi-pink text-[10px] flex items-center justify-center text-white font-medium">
           {badge > 9 ? '9+' : badge}
@@ -48,7 +44,7 @@ const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }: NavItemP
       )}
     </div>
     <span className={cn(
-      "text-[9px] mt-0.5 font-medium transition-all",
+      "text-[10px] mt-1 font-medium transition-all",
       isActive ? "opacity-100 text-nuumi-pink" : "opacity-70"
     )}>
       {label}
@@ -61,10 +57,10 @@ const Navbar = () => {
   const [activeTab, setActiveTab] = useState('/feed');
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
 
-  // Define navItems - removed notifications tab
+  // Define navItems with emojis
   const navItems = [
-    { icon: Home, label: 'Home', path: '/feed' },
-    { icon: User, label: 'Profile', path: '/profile' },
+    { emoji: '🏠', label: 'Home', path: '/feed' },
+    { emoji: '👤', label: 'Profile', path: '/profile' },
   ];
 
   // Handle active tab setting
@@ -81,40 +77,54 @@ const Navbar = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 flex flex-col items-center pb-1 z-50 pointer-events-none">
+      {/* Backdrop for action menu */}
+      <AnimatePresence>
+        {actionMenuOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black/10 backdrop-blur-sm pointer-events-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setActionMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Action Menu Popup */}
       <AnimatePresence>
         {actionMenuOpen && (
           <motion.div
-            className="absolute bottom-16 flex space-x-3"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
+            className="absolute bottom-16 flex flex-col items-center w-full pointer-events-none"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{
+              duration: 0.3,
+              type: "spring",
+              stiffness: 300,
+              damping: 25
+            }}
           >
-            <Link
-              to="/marketplace"
-              className="bg-card shadow-lg rounded-full p-2 flex flex-col items-center pointer-events-auto"
-              onClick={() => setActionMenuOpen(false)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-nuumi-pink">
-                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
-                <path d="M3 6h18"></path>
-                <path d="M16 10a4 4 0 0 1-8 0"></path>
-              </svg>
-              <span className="text-[9px] mt-0.5 font-medium">Marketplace</span>
-            </Link>
-            <Link
-              to="/create"
-              className="bg-card shadow-lg rounded-full p-2 flex flex-col items-center pointer-events-auto"
-              onClick={() => setActionMenuOpen(false)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-nuumi-pink">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 8v8"></path>
-                <path d="M8 12h8"></path>
-              </svg>
-              <span className="text-[9px] mt-0.5 font-medium">Add Post</span>
-            </Link>
+            <div className="flex space-x-4 mb-2 pointer-events-auto">
+              <Link
+                to="/marketplace"
+                className="bg-white dark:bg-card shadow-lg rounded-2xl p-3 flex flex-col items-center w-20 h-20 justify-center transform transition-transform hover:scale-105 hover:shadow-xl"
+                onClick={() => setActionMenuOpen(false)}
+              >
+                <span className="text-3xl mb-1">🛍️</span>
+                <span className="text-xs font-medium">Marketplace</span>
+              </Link>
+
+              <Link
+                to="/create"
+                className="bg-white dark:bg-card shadow-lg rounded-2xl p-3 flex flex-col items-center w-20 h-20 justify-center transform transition-transform hover:scale-105 hover:shadow-xl"
+                onClick={() => setActionMenuOpen(false)}
+              >
+                <span className="text-3xl mb-1">✏️</span>
+                <span className="text-xs font-medium">Add Post</span>
+              </Link>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -124,7 +134,7 @@ const Navbar = () => {
           {/* Home button */}
           <NavItem
             key={navItems[0].path}
-            icon={navItems[0].icon}
+            emoji={navItems[0].emoji}
             label={navItems[0].label}
             path={navItems[0].path}
             isActive={activeTab === navItems[0].path}
@@ -133,24 +143,24 @@ const Navbar = () => {
 
           {/* Center Action Button with Groove */}
           <div className="relative -mt-4 px-3">
-            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-card rounded-full border border-border/40 -z-10"></div>
-            <ActionButton
-              icon={Plus}
-              label=""
+            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-14 h-14 bg-card rounded-full border border-border/40 -z-10"></div>
+            <button
               onClick={toggleActionMenu}
               className={cn(
-                "bg-nuumi-pink text-white shadow-md transform transition-transform duration-300",
-                actionMenuOpen && "rotate-45"
+                "w-12 h-12 rounded-full bg-gradient-to-r from-nuumi-pink to-nuumi-pink/80 text-white shadow-lg",
+                "flex items-center justify-center transform transition-all duration-300",
+                "hover:shadow-nuumi-pink/20 hover:shadow-xl",
+                actionMenuOpen ? "rotate-45 scale-110" : "scale-100"
               )}
-              variant="primary"
-              size="md"
-            />
+            >
+              <span className="text-2xl">{actionMenuOpen ? "✕" : "+"}</span>
+            </button>
           </div>
 
           {/* Profile button */}
           <NavItem
             key={navItems[1].path}
-            icon={navItems[1].icon}
+            emoji={navItems[1].emoji}
             label={navItems[1].label}
             path={navItems[1].path}
             isActive={activeTab === navItems[1].path}
