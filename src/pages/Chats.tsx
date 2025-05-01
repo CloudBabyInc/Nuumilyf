@@ -178,7 +178,7 @@ const DirectMessagePage = () => {
           }
 
           // Call the Edge Function
-          const functionUrl = `${supabase.supabaseUrl}/functions/v1/add-participant-v3`;
+          const functionUrl = `${supabase.supabaseUrl}/functions/v1/add-participant-v4`;
           console.log('Calling Edge Function:', functionUrl);
 
           const response = await fetch(functionUrl, {
@@ -236,6 +236,9 @@ const DirectMessagePage = () => {
           console.error('Error in conversation setup:', error);
           // Continue anyway - the conversation is created
         }
+
+        // Store the recipient ID in localStorage for the conversation page to use
+        localStorage.setItem(`recipient_${newConversation.id}`, userId);
 
         // Navigate to the new conversation
         navigate(`/chats/${newConversation.id}`);
@@ -345,7 +348,41 @@ const ConversationPage = () => {
       }
 
       if (!participants || participants.length === 0) {
-        // If there are no other participants, we'll just show a placeholder
+        // If there are no other participants, let's try to get the user ID from the URL
+        // This happens when we've just created a conversation and navigated to it
+        const pathParts = window.location.pathname.split('/');
+        const conversationIdFromPath = pathParts[pathParts.length - 1];
+
+        // Check if this is a newly created conversation by comparing IDs
+        if (conversationIdFromPath === conversationId) {
+          // Try to get the user ID from localStorage (we'll store it when creating a conversation)
+          const storedUserId = localStorage.getItem(`recipient_${conversationId}`);
+
+          if (storedUserId) {
+            console.log('Found stored recipient ID:', storedUserId);
+
+            // Get recipient profile using the stored ID
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('id, display_name, username, avatar_url')
+              .eq('id', storedUserId)
+              .single();
+
+            if (profile && !profileError) {
+              setRecipient({
+                id: profile.id,
+                name: profile.display_name || profile.username || 'User',
+                avatar: profile.avatar_url || undefined,
+                isOnline: false
+              });
+
+              // Continue with the rest of the function
+              return;
+            }
+          }
+        }
+
+        // Fallback to placeholder if we couldn't get the user
         setRecipient({
           id: 'placeholder',
           name: 'New Conversation',
