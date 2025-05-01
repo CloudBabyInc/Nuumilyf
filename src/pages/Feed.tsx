@@ -367,14 +367,24 @@ const Feed = () => {
 
   const handleShare = (postId: string) => {
     console.log(`Share post ${postId}`);
+    const shareUrl = `${window.location.origin}/post/${postId}`;
+
     if (navigator.share) {
       navigator.share({
         title: 'Check out this post on nuumi',
         text: 'I found this interesting post on nuumi',
-        url: `${window.location.origin}/post/${postId}`,
+        url: shareUrl,
       }).catch(err => console.error('Error sharing:', err));
     } else {
-      toast.success('Post link copied to clipboard');
+      // Fallback for browsers that don't support navigator.share
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => {
+          toast.success('Post link copied to clipboard');
+        })
+        .catch(err => {
+          console.error('Error copying to clipboard:', err);
+          toast.error('Failed to copy link');
+        });
     }
   };
 

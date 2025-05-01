@@ -308,6 +308,28 @@ const Profile = () => {
     navigate(`/chats/user/${profile.id}`);
   };
 
+  const handleShare = (postId: string) => {
+    const shareUrl = `${window.location.origin}/post/${postId}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'Check out this post on nuumi',
+        text: 'I found this interesting post on nuumi',
+        url: shareUrl,
+      }).catch(err => console.error('Error sharing:', err));
+    } else {
+      // Fallback for browsers that don't support navigator.share
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => {
+          toast.success('Post link copied to clipboard');
+        })
+        .catch(err => {
+          console.error('Error copying to clipboard:', err);
+          toast.error('Failed to copy link');
+        });
+    }
+  };
+
   const handleLike = async (postId: string) => {
     if (!currentUser) {
       toast.error('Please sign in to like posts');
@@ -528,7 +550,7 @@ const Profile = () => {
                   onLike={() => handleLike(post.id)}
                   onComment={() => {}}
                   onRepost={() => {}}
-                  onShare={() => {}}
+                  onShare={() => handleShare(post.id)}
                 />
               ))}
             </div>
