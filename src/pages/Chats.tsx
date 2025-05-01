@@ -445,9 +445,10 @@ const ConversationPage = () => {
 
     fetchConversation();
 
-    // Set up realtime subscription for new messages
+    // Set up realtime subscription for new messages and updates
     const channel = supabase
       .channel(`conversation-${conversationId}`)
+      // Listen for new messages
       .on('postgres_changes',
         {
           event: 'INSERT',
@@ -456,9 +457,30 @@ const ConversationPage = () => {
           filter: `conversation_id=eq.${conversationId}`
         },
         async (payload) => {
-          // Add the new message to the list
           const newMessage = payload.new as any;
 
+          // Skip if this is our own message (already handled by optimistic UI)
+          if (newMessage.sender_id === session.user.id) {
+            // Just update the status to delivered for our own messages
+            setMessages(current =>
+              current.map(msg => {
+                // Find our temporary message by content and update it
+                if (msg.content === newMessage.content &&
+                    msg.senderId === session.user.id &&
+                    msg.id.startsWith('temp-')) {
+                  return {
+                    ...msg,
+                    id: newMessage.id,
+                    status: 'delivered'
+                  };
+                }
+                return msg;
+              })
+            );
+            return;
+          }
+
+          // Add the new message from the other person
           setMessages(current => [
             ...current,
             {
@@ -466,17 +488,41 @@ const ConversationPage = () => {
               content: newMessage.content,
               timestamp: newMessage.created_at,
               senderId: newMessage.sender_id,
-              status: newMessage.read ? 'read' : 'delivered'
+              status: newMessage.read ? 'read' : 'delivered',
+              isNew: true
             }
           ]);
 
-          // Mark message as read if it's from the other person
-          if (newMessage.sender_id !== session.user.id) {
-            await supabase
-              .from('messages')
-              .update({ read: true })
-              .eq('id', newMessage.id);
-          }
+          // Mark message as read immediately since we're viewing the conversation
+          await supabase
+            .from('messages')
+            .update({ read: true })
+            .eq('id', newMessage.id);
+        }
+      )
+      // Listen for message updates (read receipts)
+      .on('postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          const updatedMessage = payload.new as any;
+
+          // Update message status in our local state
+          setMessages(current =>
+            current.map(msg => {
+              if (msg.id === updatedMessage.id) {
+                return {
+                  ...msg,
+                  status: updatedMessage.read ? 'read' : 'delivered'
+                };
+              }
+              return msg;
+            })
+          );
         }
       )
       .subscribe();
@@ -489,23 +535,69 @@ const ConversationPage = () => {
   const handleSendMessage = async (content: string) => {
     if (!session || !conversationId || !content.trim()) return;
 
+    // Generate a temporary ID for optimistic UI update
+    const tempId = `temp-${Date.now()}`;
+    const now = new Date().toISOString();
+
+    // Add message to UI immediately (optimistic update)
+    setMessages(current => [
+      ...current,
+      {
+        id: tempId,
+        content: content.trim(),
+        timestamp: now,
+        senderId: session.user.id,
+        status: 'sent'
+      }
+    ]);
+
     try {
-      const { error } = await supabase
+      // Send message to server
+      const { data, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
           sender_id: session.user.id,
           content: content.trim(),
           read: false
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) {
         console.error('Error sending message:', error);
         toast.error('Failed to send message');
+
+        // Remove the optimistic message on error
+        setMessages(current => current.filter(msg => msg.id !== tempId));
+      } else {
+        // Update the message status to delivered
+        setMessages(current =>
+          current.map(msg =>
+            msg.id === tempId
+              ? { ...msg, id: data.id, status: 'delivered' }
+              : msg
+          )
+        );
+
+        // After a short delay, update to "read" status if the recipient is active
+        // This is a simulation - in a real app, this would be triggered by the recipient
+        setTimeout(() => {
+          setMessages(current =>
+            current.map(msg =>
+              msg.id === data.id && msg.senderId === session.user.id
+                ? { ...msg, status: 'read' }
+                : msg
+            )
+          );
+        }, 2000);
       }
     } catch (err) {
       console.error('Error sending message:', err);
       toast.error('Failed to send message');
+
+      // Remove the optimistic message on error
+      setMessages(current => current.filter(msg => msg.id !== tempId));
     }
   };
 
