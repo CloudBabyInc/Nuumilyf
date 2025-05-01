@@ -222,8 +222,6 @@ const DirectMessagePage = () => {
               conversation_id: newConversation.id,
               sender_id: session.user.id,
               content: 'Hello! I started this conversation.',
-              topic: 'message',
-              extension: '',
               read: false
             });
 
@@ -502,11 +500,7 @@ const ConversationPage = () => {
           conversation_id: conversationId,
           sender_id: session.user.id,
           content: content.trim(),
-          topic: 'message', // Required field
-          extension: '', // Required field
-          event: 'message', // Optional but good to set
-          private: false, // Optional but good to set
-          read: false // Optional but good to set
+          read: false
         });
 
       if (error) {
