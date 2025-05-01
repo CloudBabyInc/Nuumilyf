@@ -19,6 +19,7 @@ import CreatePost from "./pages/CreatePost";
 import Chats from "./pages/Chats";
 import Notifications from "./pages/Notifications";
 import PostView from "./pages/PostView";
+import TestChat from "./pages/TestChat";
 import ThemeProvider from "./components/theme/ThemeProvider";
 
 // Create a wrapper component that conditionally renders the Navbar
@@ -63,6 +64,7 @@ const AppRoutes = () => {
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/post/:postId" element={<PostView />} />
+        <Route path="/test-chat" element={<TestChat />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
