@@ -78,6 +78,7 @@ const DirectMessagePage = () => {
   const [session, setSession] = useState<any>(null);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -91,6 +92,7 @@ const DirectMessagePage = () => {
 
       try {
         setLoading(true);
+        setError(null);
 
         // Check if the user exists
         const { data: userProfile, error: userError } = await supabase
@@ -220,27 +222,27 @@ const DirectMessagePage = () => {
         if (error.hint) console.error('Error hint:', error.hint);
         if (error.code) console.error('Error code:', error.code);
 
-        // Show more specific error message if available
+        // Set error message
+        let errorMessage = 'Failed to start conversation. Please try again later.';
+
         if (error.message) {
-          toast.error(`Error: ${error.message}`);
+          errorMessage = `Error: ${error.message}`;
         } else if (error.code === '23505') {
-          toast.error('A conversation with this user already exists');
+          errorMessage = 'A conversation with this user already exists';
         } else if (error.code === '23503') {
-          toast.error('User not found');
+          errorMessage = 'User not found';
         } else if (error.code === '42P01') {
-          toast.error('Database table not found. Please contact support.');
+          errorMessage = 'Database table not found. Please contact support.';
         } else if (error.code && error.code.startsWith('42')) {
-          toast.error('Database schema error. Please contact support.');
+          errorMessage = 'Database schema error. Please contact support.';
         } else if (error.code && error.code.startsWith('23')) {
-          toast.error('Database constraint violation. Please try again later.');
-        } else {
-          toast.error('Failed to start conversation. Please try again later.');
+          errorMessage = 'Database constraint violation. Please try again later.';
         }
 
-        // Add a small delay before navigating to ensure the toast is visible
-        setTimeout(() => {
-          navigate('/chats');
-        }, 500);
+        setError(errorMessage);
+        toast.error(errorMessage);
+
+        // Don't navigate away automatically - let the user see the error
       } finally {
         setLoading(false);
       }
@@ -249,15 +251,38 @@ const DirectMessagePage = () => {
     initializeDirectMessage();
   }, [session, userId, navigate]);
 
-  if (loading) {
+  if (!session) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-nuumi-pink" />
+        <p className="text-muted-foreground">Please sign in to start a conversation</p>
       </div>
     );
   }
 
-  return null; // This component will redirect to either /chats or /chats/:conversationId
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        {loading ? (
+          <>
+            <Loader2 className="h-8 w-8 animate-spin text-nuumi-pink" />
+            <p className="text-muted-foreground">Starting conversation...</p>
+          </>
+        ) : error ? (
+          <>
+            <div className="text-red-500 mb-4">{error}</div>
+            <button
+              onClick={() => navigate('/chats')}
+              className="px-4 py-2 bg-nuumi-pink text-white rounded-md hover:bg-nuumi-pink/90"
+            >
+              Back to Chats
+            </button>
+          </>
+        ) : (
+          <p className="text-muted-foreground">Preparing conversation...</p>
+        )}
+      </div>
+    </div>
+  );
 };
 
 // Conversation Component
