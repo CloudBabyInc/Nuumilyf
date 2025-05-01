@@ -359,7 +359,11 @@ const ConversationPage = () => {
         .insert({
           conversation_id: conversationId,
           sender_id: session.user.id,
-          content: content.trim()
+          content: content.trim(),
+          topic: '', // Add empty string for required field
+          extension: '', // Add empty string for required field
+          event: 'message', // Add default event type
+          private: false // Set default privacy setting
         });
 
       if (error) {

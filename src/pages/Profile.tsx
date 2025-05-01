@@ -264,20 +264,65 @@ const Profile = () => {
 
     if (!profile?.id || currentUser.id === profile.id) return;
 
+    // Show loading state
+    const loadingToast = toast.loading(isFollowing ? 'Unfollowing...' : 'Following...');
+
     try {
       if (isFollowing) {
+        // First check if the follow relationship exists
+        const { data: existingFollow, error: checkError } = await supabase
+          .from('followers')
+          .select('id')
+          .eq('follower_id', currentUser.id)
+          .eq('following_id', profile.id)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          // PGRST116 means not found, which is expected if not following
+          throw checkError;
+        }
+
+        if (!existingFollow) {
+          // Already not following, just update UI
+          setIsFollowing(false);
+          toast.dismiss(loadingToast);
+          return;
+        }
+
+        // Delete the follow relationship
         const { error } = await supabase
           .from('followers')
           .delete()
-          .eq('follower_id', currentUser.id)
-          .eq('following_id', profile.id);
+          .eq('id', existingFollow.id);
 
         if (error) throw error;
 
+        // Update UI state
         setIsFollowing(false);
         setFollowersCount(prev => Math.max(0, prev - 1));
+        toast.dismiss(loadingToast);
         toast.success(`Unfollowed ${profile.display_name || profile.username || 'user'}`);
       } else {
+        // First check if already following to prevent duplicates
+        const { data: existingFollow, error: checkError } = await supabase
+          .from('followers')
+          .select('id')
+          .eq('follower_id', currentUser.id)
+          .eq('following_id', profile.id)
+          .maybeSingle();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          throw checkError;
+        }
+
+        if (existingFollow) {
+          // Already following, just update UI
+          setIsFollowing(true);
+          toast.dismiss(loadingToast);
+          return;
+        }
+
+        // Insert new follow relationship
         const { error } = await supabase
           .from('followers')
           .insert({
@@ -287,13 +332,28 @@ const Profile = () => {
 
         if (error) throw error;
 
+        // Update UI state
         setIsFollowing(true);
         setFollowersCount(prev => prev + 1);
+        toast.dismiss(loadingToast);
         toast.success(`Following ${profile.display_name || profile.username || 'user'}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling follow status:', error);
-      toast.error('Failed to update follow status');
+      toast.dismiss(loadingToast);
+
+      // More specific error message
+      if (error.code === '23505') {
+        // Unique constraint violation - already following
+        toast.error('You are already following this user');
+        // Refresh the UI state to be consistent
+        setIsFollowing(true);
+      } else if (error.code === '23503') {
+        // Foreign key violation
+        toast.error('User not found');
+      } else {
+        toast.error('Failed to update follow status');
+      }
     }
   };
 
