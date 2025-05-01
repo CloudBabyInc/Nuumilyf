@@ -178,7 +178,7 @@ const DirectMessagePage = () => {
           }
 
           // Call the Edge Function
-          const functionUrl = `${supabase.supabaseUrl}/functions/v1/add-participant`;
+          const functionUrl = `${supabase.supabaseUrl}/functions/v1/add-participant-v3`;
           console.log('Calling Edge Function:', functionUrl);
 
           const response = await fetch(functionUrl, {
