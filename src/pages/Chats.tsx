@@ -143,31 +143,74 @@ const DirectMessagePage = () => {
         // Create new conversation if none exists
         const { data: newConversation, error: newConversationError } = await supabase
           .from('conversations')
-          .insert({})
+          .insert({
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            last_message: '',
+            is_group: false,
+            name: null,
+            topic: '',
+            extension: '',
+            event: 'created',
+            private: false
+          })
           .select('id')
           .single();
 
-        if (newConversationError) throw newConversationError;
+        if (newConversationError) {
+          console.error('Error creating conversation:', newConversationError);
+          throw new Error('Failed to create conversation');
+        }
 
         // Add current user as participant
-        await supabase.from('conversation_participants').insert({
-          conversation_id: newConversation.id,
-          user_id: session.user.id
-        });
+        const { error: currentUserError } = await supabase
+          .from('conversation_participants')
+          .insert({
+            conversation_id: newConversation.id,
+            user_id: session.user.id,
+            joined_at: new Date().toISOString()
+          });
+
+        if (currentUserError) {
+          console.error('Error adding current user to conversation:', currentUserError);
+          throw new Error('Failed to add you to the conversation');
+        }
 
         // Add the other user as participant
-        await supabase.from('conversation_participants').insert({
-          conversation_id: newConversation.id,
-          user_id: userId
-        });
+        const { error: otherUserError } = await supabase
+          .from('conversation_participants')
+          .insert({
+            conversation_id: newConversation.id,
+            user_id: userId,
+            joined_at: new Date().toISOString()
+          });
+
+        if (otherUserError) {
+          console.error('Error adding other user to conversation:', otherUserError);
+          throw new Error('Failed to add the other user to the conversation');
+        }
 
         // Navigate to the new conversation
         navigate(`/chats/${newConversation.id}`);
 
       } catch (error: any) {
         console.error('Error creating direct message:', error);
-        toast.error('Failed to start conversation');
-        navigate('/chats');
+
+        // Show more specific error message if available
+        if (error.message) {
+          toast.error(error.message);
+        } else if (error.code === '23505') {
+          toast.error('A conversation with this user already exists');
+        } else if (error.code === '23503') {
+          toast.error('User not found');
+        } else {
+          toast.error('Failed to start conversation');
+        }
+
+        // Add a small delay before navigating to ensure the toast is visible
+        setTimeout(() => {
+          navigate('/chats');
+        }, 500);
       } finally {
         setLoading(false);
       }
