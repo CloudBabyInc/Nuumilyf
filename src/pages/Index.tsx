@@ -11,14 +11,14 @@ const Index = () => {
     const checkSession = async () => {
       setLoading(true);
       const { data } = await supabase.auth.getSession();
-      
+
       if (data.session) {
         // Logged in, always redirect to feed
         navigate('/feed');
       } else {
         // Not logged in, check if first time user
         const hasShownOnboarding = localStorage.getItem('hasShownOnboarding');
-        
+
         if (hasShownOnboarding === 'true') {
           // Not first time, redirect to auth
           navigate('/auth');
@@ -29,7 +29,7 @@ const Index = () => {
       }
       setLoading(false);
     };
-    
+
     checkSession();
   }, [navigate]);
 
@@ -38,9 +38,9 @@ const Index = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center animate-fade-in">
           <div className="flex flex-col items-center justify-center">
-            <img 
-              src="/lovable-uploads/3f006055-b9a4-4322-9a83-427e9aa8b18b.png" 
-              alt="nuumi - For every mom" 
+            <img
+              src="/assets/LOGO.png"
+              alt="nuumi - For every mom"
               className="w-64 md:w-80 max-w-full h-auto mb-4"
             />
             <p className="text-muted-foreground animate-pulse">Loading...</p>

@@ -66,7 +66,7 @@ const Header = ({
         {!showBackButton && (
           <Link to="/" className="mr-2">
             <img
-              src="/lovable-uploads/3f006055-b9a4-4322-9a83-427e9aa8b18b.png"
+              src="/assets/LOGO.png"
               alt="nuumi logo"
               className="h-8 w-auto"
             />
