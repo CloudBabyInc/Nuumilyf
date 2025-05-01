@@ -167,52 +167,23 @@ const DirectMessagePage = () => {
           throw new Error('Failed to add you to the conversation');
         }
 
-        // Use the Edge Function to add the other user
+        // Add the other user directly
         try {
-          // Get auth token
-          const { data: authData } = await supabase.auth.getSession();
-          const token = authData.session?.access_token;
+          console.log('Adding other user directly to conversation');
 
-          if (!token) {
-            throw new Error('Authentication token not available');
-          }
+          // Try direct insertion
+          const { error: directError } = await supabase
+            .from('conversation_participants')
+            .insert({
+              conversation_id: newConversation.id,
+              user_id: userId
+            });
 
-          // Call the Edge Function
-          const functionUrl = `${supabase.supabaseUrl}/functions/v1/add-participant-v4`;
-          console.log('Calling Edge Function:', functionUrl);
-
-          const response = await fetch(functionUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              conversationId: newConversation.id,
-              userId: userId
-            })
-          });
-
-          const result = await response.json();
-          console.log('Edge Function result:', result);
-
-          if (!response.ok) {
-            console.error('Error from Edge Function:', result);
-            // Try direct insertion as fallback
-            const { error: directError } = await supabase
-              .from('conversation_participants')
-              .insert({
-                conversation_id: newConversation.id,
-                user_id: userId
-              });
-
-            if (directError) {
-              console.error('Fallback also failed:', directError);
-            } else {
-              console.log('Fallback succeeded');
-            }
+          if (directError) {
+            console.error('Error adding other user:', directError);
+            // Continue anyway - the conversation is created
           } else {
-            console.log('Successfully added other user via Edge Function');
+            console.log('Successfully added other user to conversation');
           }
 
           // Add a welcome message
