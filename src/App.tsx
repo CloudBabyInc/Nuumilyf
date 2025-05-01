@@ -18,28 +18,29 @@ import Marketplace from "./pages/Marketplace";
 import CreatePost from "./pages/CreatePost";
 import Chats from "./pages/Chats";
 import Notifications from "./pages/Notifications";
+import ThemeProvider from "./components/theme/ThemeProvider";
 
 // Create a wrapper component that conditionally renders the Navbar
 const ConditionalNavbar = () => {
   const location = useLocation();
   const pathname = location.pathname;
-  
+
   // Only show navbar on these routes
   const showNavbarRoutes = ['/feed', '/chats', '/profile', '/marketplace', '/create', '/notifications'];
-  
+
   // Routes that should hide the navbar (like when in a specific conversation)
   const hideNavbarRoutes = ['/chats/'];
-  
+
   // Check if the current route matches any of the routes that should hide the navbar
-  const shouldHideNavbar = hideNavbarRoutes.some(route => 
+  const shouldHideNavbar = hideNavbarRoutes.some(route =>
     pathname.startsWith(route) && pathname.length > route.length
   );
-  
+
   // Check if the current route should display navbar
-  const shouldShowNavbar = !shouldHideNavbar && showNavbarRoutes.some(route => 
+  const shouldShowNavbar = !shouldHideNavbar && showNavbarRoutes.some(route =>
     pathname === route || (route !== '/' && pathname.startsWith(route + '/'))
   );
-  
+
   return shouldShowNavbar ? <Navbar /> : null;
 };
 
@@ -73,11 +74,13 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <ThemeProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

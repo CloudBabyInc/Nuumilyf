@@ -18,23 +18,23 @@ interface NavItemProps {
 const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }: NavItemProps) => (
   <Link
     to={path}
-    className="flex flex-col items-center justify-center relative" 
+    className="flex flex-col items-center justify-center relative"
     onClick={() => onClick(path)}
   >
     <div className={cn(
       "relative flex items-center justify-center transition-all duration-300",
-      isActive ? "text-nuumi-pink scale-105" : "text-muted-foreground scale-100 hover:text-foreground/80"
+      isActive ? "text-nuumi-pink scale-105" : "text-muted-foreground scale-100 hover:text-foreground"
     )}>
       {isActive && (
-        <motion.div 
+        <motion.div
           layoutId="navIndicator"
           className="absolute inset-0 bg-nuumi-pink/10 rounded-full -m-1.5 w-8 h-8"
           initial={false}
           transition={{ type: "spring", duration: 0.5 }}
         />
       )}
-      <Icon 
-        size={20} 
+      <Icon
+        size={20}
         strokeWidth={isActive ? 2.5 : 2}
         className={cn(
           "transition-all duration-300",
@@ -60,7 +60,7 @@ const Navbar = () => {
   // Use this for non-router environments or fallback to '/' when not in a Router context
   const [activeTab, setActiveTab] = useState('/feed');
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
-  
+
   // Define navItems - removed notifications tab
   const navItems = [
     { icon: Home, label: 'Home', path: '/feed' },
@@ -84,15 +84,15 @@ const Navbar = () => {
       {/* Action Menu Popup */}
       <AnimatePresence>
         {actionMenuOpen && (
-          <motion.div 
+          <motion.div
             className="absolute bottom-16 flex space-x-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
           >
-            <Link 
-              to="/marketplace" 
+            <Link
+              to="/marketplace"
               className="bg-card shadow-lg rounded-full p-2 flex flex-col items-center pointer-events-auto"
               onClick={() => setActionMenuOpen(false)}
             >
@@ -103,8 +103,8 @@ const Navbar = () => {
               </svg>
               <span className="text-[9px] mt-0.5 font-medium">Marketplace</span>
             </Link>
-            <Link 
-              to="/create" 
+            <Link
+              to="/create"
               className="bg-card shadow-lg rounded-full p-2 flex flex-col items-center pointer-events-auto"
               onClick={() => setActionMenuOpen(false)}
             >
@@ -130,7 +130,7 @@ const Navbar = () => {
             isActive={activeTab === navItems[0].path}
             onClick={handleSetActiveTab}
           />
-          
+
           {/* Center Action Button with Groove */}
           <div className="relative -mt-4 px-3">
             <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-card rounded-full border border-border/40 -z-10"></div>
@@ -146,7 +146,7 @@ const Navbar = () => {
               size="md"
             />
           </div>
-          
+
           {/* Profile button */}
           <NavItem
             key={navItems[1].path}

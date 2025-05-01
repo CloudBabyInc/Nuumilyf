@@ -5,10 +5,11 @@ import ProfileStats from '@/components/profile/ProfileStats';
 import ProfileBio from '@/components/profile/ProfileBio';
 import ProfileActions from '@/components/profile/ProfileActions';
 import SupportCard from '@/components/support/SupportCard';
-import { Utensils, Baby, Wallet, MapPin, Loader2, Camera, MessageCircle } from 'lucide-react';
+import { Utensils, Baby, Wallet, MapPin, Loader2, Camera, MessageCircle, Settings } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import EditProfileDialog from '@/components/profile/EditProfileDialog';
+import SettingsDialog from '@/components/profile/SettingsDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Post from '@/components/shared/Post';
@@ -38,7 +39,7 @@ const Profile = () => {
       setIsLoadingSession(true);
       const { data } = await supabase.auth.getSession();
       setCurrentUser(data.session?.user || null);
-      
+
       if (data.session?.user) {
         if (!userId) {
           setIsCurrentUserProfile(true);
@@ -48,16 +49,16 @@ const Profile = () => {
       } else {
         setIsCurrentUserProfile(false);
       }
-      
+
       setIsLoadingSession(false);
     };
-    
+
     checkSession();
-    
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setCurrentUser(session?.user || null);
-        
+
         if (session?.user) {
           if (!userId) {
             setIsCurrentUserProfile(true);
@@ -69,7 +70,7 @@ const Profile = () => {
         }
       }
     );
-    
+
     return () => {
       subscription.unsubscribe();
     };
@@ -78,42 +79,42 @@ const Profile = () => {
   useEffect(() => {
     const fetchStats = async () => {
       if (!profile?.id) return;
-      
+
       setIsLoadingStats(true);
-      
+
       const { count: followersCount, error: followersError } = await supabase
         .from('followers')
         .select('id', { count: 'exact', head: true })
         .eq('following_id', profile.id);
-        
+
       if (followersError) {
         console.error('Error fetching followers count:', followersError);
       } else {
         setFollowersCount(followersCount || 0);
       }
-      
+
       const { count: followingCount, error: followingError } = await supabase
         .from('followers')
         .select('id', { count: 'exact', head: true })
         .eq('follower_id', profile.id);
-        
+
       if (followingError) {
         console.error('Error fetching following count:', followingError);
       } else {
         setFollowingCount(followingCount || 0);
       }
-      
+
       const { count: postsCount, error: postsError } = await supabase
         .from('posts')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', profile.id);
-        
+
       if (postsError) {
         console.error('Error fetching posts count:', postsError);
       } else {
         setPostsCount(postsCount || 0);
       }
-      
+
       if (currentUser?.id) {
         const { data: followData, error: followError } = await supabase
           .from('followers')
@@ -121,38 +122,38 @@ const Profile = () => {
           .eq('follower_id', currentUser.id)
           .eq('following_id', profile.id)
           .maybeSingle();
-          
+
         if (followError) {
           console.error('Error checking follow status:', followError);
         } else {
           setIsFollowing(!!followData);
         }
       }
-      
+
       setIsLoadingStats(false);
     };
-    
+
     fetchStats();
   }, [profile?.id, currentUser?.id]);
 
   useEffect(() => {
     const fetchPosts = async () => {
       if (!profile?.id) return;
-      
+
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('id, content, image_url, created_at')
         .eq('user_id', profile.id)
         .order('created_at', { ascending: false })
         .limit(10);
-        
+
       if (postsError) {
         console.error('Error fetching posts:', postsError);
         return;
       }
-      
+
       if (!postsData) return;
-      
+
       const formattedPosts = postsData.map(post => ({
         id: post.id,
         content: post.content,
@@ -170,36 +171,36 @@ const Profile = () => {
         reposts_count: 0,
         isLiked: false
       }));
-      
+
       const postsWithMetrics = await Promise.all(
         formattedPosts.map(async (post) => {
           const { count: likesCount, error: likesError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', post.id);
-            
+
           if (likesError) {
             console.error('Error fetching likes count:', likesError);
           }
-          
+
           const { count: commentsCount, error: commentsError } = await supabase
             .from('comments')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', post.id);
-            
+
           if (commentsError) {
             console.error('Error fetching comments count:', commentsError);
           }
-          
+
           const { count: repostsCount, error: repostsError } = await supabase
             .from('reposts')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', post.id);
-            
+
           if (repostsError) {
             console.error('Error fetching reposts count:', repostsError);
           }
-          
+
           let isLiked = false;
           if (currentUser?.id) {
             const { data: likeData, error: likeError } = await supabase
@@ -208,14 +209,14 @@ const Profile = () => {
               .eq('post_id', post.id)
               .eq('user_id', currentUser.id)
               .maybeSingle();
-              
+
             if (likeError) {
               console.error('Error checking like status:', likeError);
             } else {
               isLiked = !!likeData;
             }
           }
-          
+
           return {
             ...post,
             likes_count: likesCount || 0,
@@ -225,10 +226,10 @@ const Profile = () => {
           };
         })
       );
-      
+
       setPosts(postsWithMetrics);
     };
-    
+
     fetchPosts();
   }, [profile?.id, currentUser?.id]);
 
@@ -242,7 +243,7 @@ const Profile = () => {
         if (target.files && target.files[0]) {
           try {
             toast.loading('Uploading avatar...');
-            
+
             // To be handled by the edit profile form
             // This is a placeholder - the actual implementation is in the EditProfileForm
           } catch (error) {
@@ -260,9 +261,9 @@ const Profile = () => {
       navigate('/auth');
       return;
     }
-    
+
     if (!profile?.id || currentUser.id === profile.id) return;
-    
+
     try {
       if (isFollowing) {
         const { error } = await supabase
@@ -270,9 +271,9 @@ const Profile = () => {
           .delete()
           .eq('follower_id', currentUser.id)
           .eq('following_id', profile.id);
-          
+
         if (error) throw error;
-        
+
         setIsFollowing(false);
         setFollowersCount(prev => Math.max(0, prev - 1));
         toast.success(`Unfollowed ${profile.display_name || profile.username || 'user'}`);
@@ -283,9 +284,9 @@ const Profile = () => {
             follower_id: currentUser.id,
             following_id: profile.id
           });
-          
+
         if (error) throw error;
-        
+
         setIsFollowing(true);
         setFollowersCount(prev => prev + 1);
         toast.success(`Following ${profile.display_name || profile.username || 'user'}`);
@@ -301,9 +302,9 @@ const Profile = () => {
       navigate('/auth');
       return;
     }
-    
+
     if (!profile?.id || currentUser.id === profile.id) return;
-    
+
     navigate(`/chats/user/${profile.id}`);
   };
 
@@ -312,10 +313,10 @@ const Profile = () => {
       toast.error('Please sign in to like posts');
       return;
     }
-    
+
     const post = posts.find(p => p.id === postId);
     if (!post) return;
-    
+
     try {
       if (post.isLiked) {
         const { error } = await supabase
@@ -323,12 +324,12 @@ const Profile = () => {
           .delete()
           .eq('post_id', postId)
           .eq('user_id', currentUser.id);
-          
+
         if (error) throw error;
-        
-        setPosts(posts.map(p => 
-          p.id === postId 
-            ? { ...p, isLiked: false, likes_count: p.likes_count - 1 } 
+
+        setPosts(posts.map(p =>
+          p.id === postId
+            ? { ...p, isLiked: false, likes_count: p.likes_count - 1 }
             : p
         ));
       } else {
@@ -338,12 +339,12 @@ const Profile = () => {
             post_id: postId,
             user_id: currentUser.id
           });
-          
+
         if (error) throw error;
-        
-        setPosts(posts.map(p => 
-          p.id === postId 
-            ? { ...p, isLiked: true, likes_count: p.likes_count + 1 } 
+
+        setPosts(posts.map(p =>
+          p.id === postId
+            ? { ...p, isLiked: true, likes_count: p.likes_count + 1 }
             : p
         ));
       }
@@ -367,32 +368,40 @@ const Profile = () => {
     );
   }
 
-  const pageTitle = isCurrentUserProfile ? "My Profile" : displayName;
-  
+  // Settings button for the header
+  const settingsButton = isCurrentUserProfile ? (
+    <SettingsDialog
+      trigger={
+        <button className="action-button hover:bg-secondary transition-colors">
+          <Settings className="h-5 w-5" />
+        </button>
+      }
+    />
+  ) : null;
+
   return (
     <div className="min-h-screen bg-background pb-20">
-      <Header 
-        title={pageTitle} 
-        showSettings={isCurrentUserProfile}
+      <Header
         showBackButton={!isCurrentUserProfile}
         onBackClick={() => navigate(-1)}
+        rightContent={settingsButton}
       />
-      
+
       <div className="max-w-md mx-auto">
-        <ProfileHeader 
+        <ProfileHeader
           avatar={avatarUrl || undefined}
           onAvatarClick={handleAvatarClick}
           isCurrentUser={isCurrentUserProfile}
         />
-        
-        <ProfileStats 
+
+        <ProfileStats
           posts={postsCount}
           followers={followersCount}
           following={followingCount}
           userId={profile?.id}
           currentUserId={currentUser?.id}
         />
-        
+
         <ProfileBio
           username={username}
           displayName={displayName}
@@ -405,13 +414,15 @@ const Profile = () => {
               <span>Add your neighborhood</span>
             </div>
           )}
-          
-          {isCurrentUserProfile && !bio && (
-            <div className="text-sm text-muted-foreground">
-              Add child age • Add dietary needs{' '}
-              <EditProfileDialog 
+
+          {isCurrentUserProfile && (
+            <div className="text-sm text-muted-foreground mt-2">
+              {!bio ? 'Add child age • Add dietary needs' : ''}
+              <EditProfileDialog
                 trigger={
-                  <span className="text-nuumi-pink ml-1 font-medium cursor-pointer">Edit</span>
+                  <span className="text-nuumi-pink ml-1 font-medium cursor-pointer">
+                    {bio ? 'Edit Profile' : 'Edit'}
+                  </span>
                 }
                 initialData={{
                   username: username === 'username' ? '' : username,
@@ -424,7 +435,7 @@ const Profile = () => {
             </div>
           )}
         </ProfileBio>
-        
+
         <ProfileActions
           isCurrentUser={isCurrentUserProfile}
           onEditProfile={() => {}}
@@ -434,35 +445,26 @@ const Profile = () => {
           onMessage={handleStartChat}
           editProfileButton={
             isCurrentUserProfile ? (
-              <EditProfileDialog 
-                trigger={
-                  <button className="w-full bg-nuumi-pink text-white rounded-full py-2.5 font-medium flex items-center justify-center transition-all hover:bg-nuumi-pink/90 mb-6">
-                    <Camera size={18} className="mr-2" />
-                    Edit Profile
-                  </button>
-                }
-                initialData={{
-                  username: username === 'username' ? '' : username,
-                  displayName: displayName === 'User Profile' ? '' : displayName,
-                  bio: bio || '',
-                  location: location || '',
-                  avatarUrl: avatarUrl || undefined
-                }}
-              />
+              <button
+                className="w-full bg-nuumi-pink text-white rounded-full py-2.5 font-medium flex items-center justify-center transition-all hover:bg-nuumi-pink/90 mb-6"
+                onClick={() => navigate('/create')}
+              >
+                Add Post
+              </button>
             ) : (
               <div className="flex space-x-3 px-4 mb-6">
-                <button 
+                <button
                   className={`flex-1 py-2.5 rounded-full font-medium transition-all flex items-center justify-center ${
-                    isFollowing 
-                      ? 'border border-nuumi-pink text-nuumi-pink' 
+                    isFollowing
+                      ? 'border border-nuumi-pink text-nuumi-pink'
                       : 'bg-nuumi-pink text-white hover:bg-nuumi-pink/90'
                   }`}
                   onClick={handleFollowToggle}
                 >
                   {isFollowing ? 'Following' : 'Follow'}
                 </button>
-                
-                <button 
+
+                <button
                   className="flex-1 border border-nuumi-pink text-nuumi-pink rounded-full py-2.5 font-medium flex items-center justify-center transition-all hover:bg-nuumi-pink/10"
                   onClick={handleStartChat}
                 >
@@ -473,16 +475,9 @@ const Profile = () => {
             )
           }
         />
-        
+
         {isCurrentUserProfile && (
           <div className="px-4">
-            <button 
-              className="w-full bg-nuumi-pink text-white rounded-full py-3 font-medium transition-all hover:bg-nuumi-pink/90 mb-8"
-              onClick={() => navigate('/create')}
-            >
-              Add Post
-            </button>
-            
             <div className="mb-3">
               <h3 className="text-lg font-semibold mb-3">Mom Support</h3>
               <div className="grid grid-cols-3 gap-3">
@@ -491,13 +486,13 @@ const Profile = () => {
                   title="Plan Meals"
                   onClick={() => console.log('Plan Meals clicked')}
                 />
-                
+
                 <SupportCard
                   icon={Baby}
                   title="Find Care"
                   onClick={() => console.log('Find Care clicked')}
                 />
-                
+
                 <SupportCard
                   icon={Wallet}
                   title="Wallet"
@@ -507,10 +502,10 @@ const Profile = () => {
             </div>
           </div>
         )}
-        
+
         <div className="px-4 mt-6">
           <h3 className="text-lg font-semibold mb-3">Posts</h3>
-          
+
           {posts.length > 0 ? (
             <div className="space-y-3">
               {posts.map(post => (
@@ -544,7 +539,7 @@ const Profile = () => {
           )}
         </div>
       </div>
-      
+
       <Navbar />
     </div>
   );

@@ -51,8 +51,15 @@ const Story: React.FC<StoryProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timerRef = useRef<number | null>(null);
-  
-  const currentMedia = story.media[currentMediaIndex];
+
+  // Ensure story has media
+  if (!story.media || story.media.length === 0) {
+    story.media = [{ type: 'image', url: story.user.avatar || '' }];
+  }
+
+  // Ensure currentMediaIndex is valid
+  const safeMediaIndex = Math.min(currentMediaIndex, story.media.length - 1);
+  const currentMedia = story.media[safeMediaIndex];
   const isVideo = currentMedia?.type === 'video';
 
   // Handle media loading
@@ -121,14 +128,14 @@ const Story: React.FC<StoryProps> = ({
   useEffect(() => {
     setIsLoading(true);
     setProgress(0);
-    
+
     if (isVideo && videoRef.current) {
       videoRef.current.currentTime = 0;
       if (!isPaused) {
         videoRef.current.play().catch(err => console.error("Error playing video:", err));
       }
     }
-    
+
     startProgressTimer();
   }, [currentMediaIndex, isPaused, isVideo]);
 
@@ -159,10 +166,10 @@ const Story: React.FC<StoryProps> = ({
       onTogglePause();
       return;
     }
-    
+
     // Otherwise handle pause internally
     const newPausedState = !isPaused;
-    
+
     if (isVideo && videoRef.current) {
       if (newPausedState) {
         videoRef.current.pause();
@@ -200,7 +207,7 @@ const Story: React.FC<StoryProps> = ({
     <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
       {/* Close button */}
       <div className="absolute top-4 right-4 z-10">
-        <button 
+        <button
           onClick={onClose}
           className="text-white bg-black/40 p-2 rounded-full hover:bg-black/60 transition-colors"
           aria-label="Close story"
@@ -208,16 +215,16 @@ const Story: React.FC<StoryProps> = ({
           <X size={24} />
         </button>
       </div>
-      
+
       <div className="relative w-full h-full max-w-md max-h-[80vh] mx-auto">
         {/* Progress bar */}
         <div className="absolute top-0 left-0 right-0 z-10 p-2 flex items-center gap-1">
           {story.media.map((_, index) => (
             <div key={index} className="h-1 bg-white/30 rounded-full flex-1">
-              <div 
+              <div
                 className={cn(
                   "h-full bg-white rounded-full transition-all duration-100",
-                  index < currentMediaIndex ? "w-full" : 
+                  index < currentMediaIndex ? "w-full" :
                   index === currentMediaIndex ? `w-[${progress}%]` : "w-0"
                 )}
                 style={index === currentMediaIndex ? { width: `${progress}%` } : undefined}
@@ -225,12 +232,12 @@ const Story: React.FC<StoryProps> = ({
             </div>
           ))}
         </div>
-        
+
         {/* Header */}
         <div className="absolute top-4 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-10">
           <div className="flex items-center space-x-3">
-            <Avatar 
-              src={story.user.avatar} 
+            <Avatar
+              src={story.user.avatar}
               alt={story.user.name}
               size="md"
             />
@@ -240,7 +247,7 @@ const Story: React.FC<StoryProps> = ({
             </div>
           </div>
         </div>
-        
+
         {/* Content */}
         <div className="h-full w-full flex items-center justify-center relative">
           {isLoading && (
@@ -252,7 +259,7 @@ const Story: React.FC<StoryProps> = ({
               )}
             </div>
           )}
-          
+
           {isVideo ? (
             <video
               ref={videoRef}
@@ -269,8 +276,8 @@ const Story: React.FC<StoryProps> = ({
               loop={false}
             />
           ) : (
-            <img 
-              src={currentMedia.url} 
+            <img
+              src={currentMedia.url}
               alt={story.caption || "Story image"}
               className={cn(
                 "w-full h-full object-contain",
@@ -279,16 +286,16 @@ const Story: React.FC<StoryProps> = ({
               onLoad={handleMediaLoad}
             />
           )}
-          
+
           {/* Media controls overlay */}
-          <div 
+          <div
             className="absolute inset-0 z-10"
             onClick={(e) => {
               // Determine click position to navigate or pause
               const rect = e.currentTarget.getBoundingClientRect();
               const x = e.clientX - rect.left;
               const width = rect.width;
-              
+
               if (x < width * 0.3) {
                 // Left third of screen - go back
                 goToPreviousMedia();
@@ -301,11 +308,11 @@ const Story: React.FC<StoryProps> = ({
               }
             }}
           />
-          
+
           {/* Video controls */}
           {isVideo && !isLoading && (
             <div className="absolute bottom-16 right-4 flex space-x-2 z-20">
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   togglePause();
@@ -314,7 +321,7 @@ const Story: React.FC<StoryProps> = ({
               >
                 {isPaused ? <Play size={20} /> : <Pause size={20} />}
               </button>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleMute();
@@ -325,7 +332,7 @@ const Story: React.FC<StoryProps> = ({
               </button>
             </div>
           )}
-          
+
           {/* Caption */}
           {story.caption && (
             <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
@@ -333,10 +340,10 @@ const Story: React.FC<StoryProps> = ({
             </div>
           )}
         </div>
-        
+
         {/* Navigation buttons */}
         {hasPrevious && (
-          <button 
+          <button
             className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 p-2 rounded-full hover:bg-black/60 transition-colors text-white"
             onClick={(e) => {
               e.stopPropagation();
@@ -347,9 +354,9 @@ const Story: React.FC<StoryProps> = ({
             <ChevronLeft size={24} />
           </button>
         )}
-        
+
         {hasNext && (
-          <button 
+          <button
             className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 p-2 rounded-full hover:bg-black/60 transition-colors text-white"
             onClick={(e) => {
               e.stopPropagation();

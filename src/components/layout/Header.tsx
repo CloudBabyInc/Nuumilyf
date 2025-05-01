@@ -28,7 +28,7 @@ const Header = ({
 }: HeaderProps) => {
   const navigate = useNavigate();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+
   const handleBackClick = () => {
     if (onBackClick) {
       onBackClick();
@@ -36,7 +36,7 @@ const Header = ({
       navigate(-1);
     }
   };
-  
+
   const handleSettingsClick = () => {
     if (onSettingsClick) {
       onSettingsClick();
@@ -46,7 +46,7 @@ const Header = ({
   };
 
   return (
-    <header 
+    <header
       className={cn(
         "bg-background sticky top-0 z-10 w-full flex items-center justify-between py-4 px-4 shadow-sm",
         "seamless-header", // Apply the seamless style
@@ -55,42 +55,42 @@ const Header = ({
     >
       <div className="flex items-center">
         {showBackButton && (
-          <button 
+          <button
             onClick={handleBackClick}
-            className="mr-2 rounded-full h-10 w-10 flex items-center justify-center hover:bg-secondary transition-colors"
+            className="mr-2 rounded-full h-10 w-10 flex items-center justify-center hover:bg-hover transition-colors"
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
         )}
-        
+
         {!showBackButton && (
           <Link to="/" className="mr-2">
-            <img 
-              src="/lovable-uploads/3f006055-b9a4-4322-9a83-427e9aa8b18b.png" 
-              alt="nuumi logo" 
+            <img
+              src="/lovable-uploads/3f006055-b9a4-4322-9a83-427e9aa8b18b.png"
+              alt="nuumi logo"
               className="h-8 w-auto"
             />
           </Link>
         )}
-        
+
         {title && (
           <h1 className="text-lg font-semibold">{title}</h1>
         )}
       </div>
-      
+
       <div className="flex items-center space-x-1">
         {rightContent}
-        
-        <Link to="/chats" className="action-button hover:bg-secondary transition-colors">
+
+        <Link to="/chats" className="action-button">
           <MessageCircle className="h-5 w-5" />
         </Link>
-        
+
         <NotificationCenter className="action-button" />
-        
+
         {showSettings && (
-          <button 
+          <button
             onClick={handleSettingsClick}
-            className="action-button hover:bg-secondary transition-colors"
+            className="action-button"
           >
             {isSettingsOpen ? (
               <MoreVertical className="h-5 w-5" />

@@ -1,5 +1,6 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -23,17 +24,12 @@ interface UseProfileResult {
 }
 
 export const useProfile = (userId?: string): UseProfileResult => {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchProfile = async () => {
-    setIsLoading(true);
-    setError(null);
-    
+  const fetchProfile = async (): Promise<Profile | null> => {
     try {
       let profileId = userId;
-      
+
       // If no userId is provided, get the current user's profile
       if (!profileId) {
         const { data: sessionData } = await supabase.auth.getSession();
@@ -42,28 +38,39 @@ export const useProfile = (userId?: string): UseProfileResult => {
         }
         profileId = sessionData.session.user.id;
       }
-      
+
       const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', profileId)
         .single();
-        
+
       if (fetchError) throw fetchError;
-      
-      setProfile(data as Profile);
+
+      return data as Profile;
     } catch (err) {
       console.error('Error fetching profile:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch profile'));
       toast.error('Failed to load profile');
-    } finally {
-      setIsLoading(false);
+      return null;
     }
   };
 
-  useEffect(() => {
-    fetchProfile();
-  }, [userId]);
+  const {
+    data: profile,
+    isLoading,
+    refetch
+  } = useQuery({
+    queryKey: ['profile', userId],
+    queryFn: fetchProfile,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
+  });
 
-  return { profile, isLoading, error, refetch: fetchProfile };
+  return {
+    profile,
+    isLoading,
+    error,
+    refetch: async () => { await refetch(); }
+  };
 };

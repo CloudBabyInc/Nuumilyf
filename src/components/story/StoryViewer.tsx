@@ -29,7 +29,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         setIsPaused(prev => !prev);
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, stories.length, onClose]);
@@ -41,19 +41,22 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         setIsPaused(true);
       }
     };
-    
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
+  // Validate stories array
+  if (!stories || stories.length === 0) return null;
+
   // Sort stories by creation date (newest first)
-  const sortedStories = [...stories].sort((a, b) => 
+  const sortedStories = [...stories].sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  if (sortedStories.length === 0) return null;
-
-  const currentStory = sortedStories[currentIndex];
+  // Make sure currentIndex is valid
+  const safeIndex = Math.min(currentIndex, sortedStories.length - 1);
+  const currentStory = sortedStories[safeIndex];
 
   return (
     <Story

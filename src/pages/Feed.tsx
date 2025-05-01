@@ -46,7 +46,7 @@ const Feed = () => {
     queryKey: ['stories'],
     queryFn: async () => {
       const now = new Date().toISOString();
-      
+
       const { data: storiesData, error: storiesError } = await supabase
         .from('stories')
         .select(`
@@ -59,30 +59,30 @@ const Feed = () => {
         `)
         .gt('expires_at', now)
         .order('created_at', { ascending: false });
-        
+
       if (storiesError) {
         console.error('Error fetching stories:', storiesError);
         throw storiesError;
       }
-      
+
       const storiesWithProfiles = await Promise.all(storiesData.map(async (story) => {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('id, display_name, username, avatar_url')
           .eq('id', story.user_id)
           .single();
-          
+
         if (profileError) {
           console.error('Error fetching profile for story:', profileError);
           return null;
         }
-        
+
         const mediaType = story.image_url && (
-          story.image_url.endsWith('.mp4') || 
-          story.image_url.endsWith('.mov') || 
+          story.image_url.endsWith('.mp4') ||
+          story.image_url.endsWith('.mov') ||
           story.image_url.endsWith('.webm')
         ) ? 'video' : 'image';
-        
+
         return {
           id: story.id,
           user: {
@@ -99,7 +99,7 @@ const Feed = () => {
           createdAt: story.created_at
         };
       }));
-      
+
       return storiesWithProfiles.filter(Boolean) as StoryItem[];
     },
     enabled: !!session,
@@ -108,7 +108,7 @@ const Feed = () => {
 
   useEffect(() => {
     if (!session) return;
-    
+
     const postsChannel = supabase
       .channel('public:posts')
       .on('postgres_changes', {
@@ -119,7 +119,7 @@ const Feed = () => {
         queryClient.invalidateQueries({ queryKey: ['posts'] });
       })
       .subscribe();
-      
+
     const likesChannel = supabase
       .channel('public:likes')
       .on('postgres_changes', {
@@ -130,7 +130,7 @@ const Feed = () => {
         queryClient.invalidateQueries({ queryKey: ['posts'] });
       })
       .subscribe();
-      
+
     const commentsChannel = supabase
       .channel('public:comments')
       .on('postgres_changes', {
@@ -141,7 +141,7 @@ const Feed = () => {
         queryClient.invalidateQueries({ queryKey: ['posts'] });
       })
       .subscribe();
-      
+
     return () => {
       supabase.removeChannel(postsChannel);
       supabase.removeChannel(likesChannel);
@@ -162,51 +162,51 @@ const Feed = () => {
           user_id
         `)
         .order('created_at', { ascending: false });
-        
+
       if (postsError) {
         console.error('Error fetching posts:', postsError);
         throw postsError;
       }
-      
+
       const postsWithProfilesAndCounts = await Promise.all(postsData.map(async (post) => {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('id, display_name, username, avatar_url, is_verified')
           .eq('id', post.user_id)
           .single();
-          
+
         if (profileError) {
           console.error('Error fetching profile for post:', profileError);
           return null;
         }
-        
+
         const { count: likesCount, error: likesError } = await supabase
           .from('likes')
           .select('id', { count: 'exact', head: true })
           .eq('post_id', post.id);
-          
+
         if (likesError) {
           console.error('Error fetching likes count:', likesError);
         }
-        
+
         const { count: commentsCount, error: commentsError } = await supabase
           .from('comments')
           .select('id', { count: 'exact', head: true })
           .eq('post_id', post.id);
-          
+
         if (commentsError) {
           console.error('Error fetching comments count:', commentsError);
         }
-        
+
         const { count: repostsCount, error: repostsError } = await supabase
           .from('reposts')
           .select('id', { count: 'exact', head: true })
           .eq('post_id', post.id);
-          
+
         if (repostsError) {
           console.error('Error fetching reposts count:', repostsError);
         }
-        
+
         let isLiked = false;
         if (session?.user?.id) {
           const { data: likeData, error: likeError } = await supabase
@@ -215,13 +215,13 @@ const Feed = () => {
             .eq('post_id', post.id)
             .eq('user_id', session.user.id)
             .maybeSingle();
-            
+
           if (likeError) {
             console.error('Error fetching like status:', likeError);
           }
           isLiked = !!likeData;
         }
-        
+
         return {
           id: post.id,
           content: post.content,
@@ -240,7 +240,7 @@ const Feed = () => {
           isLiked
         };
       }));
-      
+
       return postsWithProfilesAndCounts.filter(Boolean) as PostType[];
     },
     enabled: !!session
@@ -251,10 +251,13 @@ const Feed = () => {
       toast.error('Please sign in to like posts');
       return;
     }
-    
+
     const post = posts?.find(p => p.id === postId);
     if (!post) return;
-    
+
+    // Optimistic update is handled in the Post component
+    // Here we just need to update the database
+
     try {
       if (post.isLiked) {
         const { error } = await supabase
@@ -262,8 +265,18 @@ const Feed = () => {
           .delete()
           .eq('post_id', postId)
           .eq('user_id', session.user.id);
-          
+
         if (error) throw error;
+
+        // Update the post in the cache
+        queryClient.setQueryData(['posts'], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((p: any) =>
+            p.id === postId
+              ? { ...p, isLiked: false, likes_count: p.likes_count - 1 }
+              : p
+          );
+        });
       } else {
         const { error } = await supabase
           .from('likes')
@@ -271,12 +284,25 @@ const Feed = () => {
             post_id: postId,
             user_id: session.user.id
           });
-          
+
         if (error) throw error;
+
+        // Update the post in the cache
+        queryClient.setQueryData(['posts'], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((p: any) =>
+            p.id === postId
+              ? { ...p, isLiked: true, likes_count: p.likes_count + 1 }
+              : p
+          );
+        });
       }
     } catch (error) {
       console.error('Error toggling like:', error);
       toast.error('Failed to update like status');
+
+      // Refresh the data to ensure UI is in sync with server
+      queryClient.invalidateQueries(['posts']);
     }
   };
 
@@ -293,21 +319,49 @@ const Feed = () => {
       toast.error('Please sign in to repost');
       return;
     }
-    
+
+    // Optimistic update is handled in the Post component
+
     try {
+      // Check if already reposted
+      const { data: existingRepost } = await supabase
+        .from('reposts')
+        .select('*')
+        .eq('post_id', postId)
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (existingRepost) {
+        toast.info('You have already reposted this');
+        return;
+      }
+
       const { error } = await supabase
         .from('reposts')
         .insert({
           post_id: postId,
           user_id: session.user.id
         });
-        
+
       if (error) throw error;
-      
+
+      // Update the post in the cache
+      queryClient.setQueryData(['posts'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((p: any) =>
+          p.id === postId
+            ? { ...p, reposts_count: p.reposts_count + 1 }
+            : p
+        );
+      });
+
       toast.success('Post shared to your profile');
     } catch (error) {
       console.error('Error reposting:', error);
       toast.error('Failed to repost');
+
+      // Refresh the data to ensure UI is in sync with server
+      queryClient.invalidateQueries(['posts']);
     }
   };
 
@@ -328,8 +382,8 @@ const Feed = () => {
     return (
       <div className="min-h-screen bg-background pb-24">
         <Header />
-        
-        <div className="max-w-md mx-auto px-4 mt-4 text-center">
+
+        <div className="max-w-md mx-auto px-4 mt-20 text-center">
           <h2 className="text-lg font-semibold mb-2">Welcome to nuumi</h2>
           <p className="text-muted-foreground mb-4">Sign in to see posts from other moms</p>
           {/* Auth buttons would go here */}
@@ -341,16 +395,16 @@ const Feed = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       <Header />
-      
+
       <div className="max-w-md mx-auto">
-        <StoriesRow 
-          stories={stories || []} 
-          isLoading={storiesLoading} 
+        <StoriesRow
+          stories={stories || []}
+          isLoading={storiesLoading}
           className="mb-4 mt-2"
           currentUserId={session?.user?.id}
         />
       </div>
-      
+
       <div className="max-w-md mx-auto px-4">
         {postsLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
@@ -375,6 +429,7 @@ const Feed = () => {
           posts.map((post) => (
             <Post
               key={post.id}
+              id={post.id}
               author={{
                 id: post.author.id,
                 name: post.author.name,
@@ -389,6 +444,10 @@ const Feed = () => {
               comments={post.comments_count}
               reposts={post.reposts_count}
               isLiked={post.isLiked}
+              currentUser={session ? {
+                id: session.user.id,
+                avatarUrl: session.user.user_metadata?.avatar_url
+              } : undefined}
               onLike={() => handleLike(post.id)}
               onComment={() => handleComment(post.id)}
               onRepost={() => handleRepost(post.id)}

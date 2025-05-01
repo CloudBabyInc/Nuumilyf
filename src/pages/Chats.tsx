@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const ChatsMainPage = () => {
   const [session, setSession] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>('recent');
-  
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -29,15 +29,15 @@ const ChatsMainPage = () => {
 
     return () => subscription.unsubscribe();
   }, []);
-  
+
   return (
     <div className="min-h-screen bg-background">
-      <Header title="Messages" />
-      
+      <Header />
+
       <div className="max-w-md mx-auto pt-2 pb-20">
         {session ? (
-          <Tabs 
-            defaultValue="recent" 
+          <Tabs
+            defaultValue="recent"
             className="w-full"
             onValueChange={setActiveTab}
           >
@@ -45,11 +45,11 @@ const ChatsMainPage = () => {
               <TabsTrigger value="recent">Recent Chats</TabsTrigger>
               <TabsTrigger value="connected">Connections</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="recent" className="mt-0">
               <ChatList currentUserId={session?.user?.id} />
             </TabsContent>
-            
+
             <TabsContent value="connected" className="mt-0">
               <div className="bg-card rounded-lg overflow-hidden">
                 <div className="p-4 bg-muted/50 border-b flex items-center">
@@ -66,7 +66,7 @@ const ChatsMainPage = () => {
           </div>
         )}
       </div>
-      
+
       <Navbar />
     </div>
   );
@@ -78,92 +78,92 @@ const DirectMessagePage = () => {
   const [session, setSession] = useState<any>(null);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
   }, []);
-  
+
   useEffect(() => {
     const initializeDirectMessage = async () => {
       if (!session || !userId) return;
-      
+
       try {
         setLoading(true);
-        
+
         // Check if the user exists
         const { data: userProfile, error: userError } = await supabase
           .from('profiles')
           .select('id')
           .eq('id', userId)
           .single();
-          
+
         if (userError || !userProfile) {
           toast.error('User not found');
           navigate('/chats');
           return;
         }
-        
+
         // Get the conversation participants and find conversations that have both users
         // First get currentUser's participants
         const { data: myParticipants, error: myParticipantsError } = await supabase
           .from('conversation_participants')
           .select('conversation_id')
           .eq('user_id', session.user.id);
-        
+
         if (myParticipantsError) throw myParticipantsError;
-        
+
         let matchingConversationId: string | null = null;
-        
+
         if (myParticipants && myParticipants.length > 0) {
           const conversationIds = myParticipants.map(p => p.conversation_id);
-          
+
           // Find conversations where the other user is also a participant
           const { data: otherParticipants, error: otherError } = await supabase
             .from('conversation_participants')
             .select('conversation_id')
             .eq('user_id', userId)
             .in('conversation_id', conversationIds);
-            
+
           if (otherError) throw otherError;
-          
+
           // If there's a match, use the first conversation found
           if (otherParticipants && otherParticipants.length > 0) {
             matchingConversationId = otherParticipants[0].conversation_id;
           }
         }
-        
+
         if (matchingConversationId) {
           // Conversation exists, navigate to it
           navigate(`/chats/${matchingConversationId}`);
           return;
         }
-        
+
         // Create new conversation if none exists
         const { data: newConversation, error: newConversationError } = await supabase
           .from('conversations')
           .insert({})
           .select('id')
           .single();
-          
+
         if (newConversationError) throw newConversationError;
-        
+
         // Add current user as participant
         await supabase.from('conversation_participants').insert({
           conversation_id: newConversation.id,
           user_id: session.user.id
         });
-        
+
         // Add the other user as participant
         await supabase.from('conversation_participants').insert({
           conversation_id: newConversation.id,
           user_id: userId
         });
-        
+
         // Navigate to the new conversation
         navigate(`/chats/${newConversation.id}`);
-        
+
       } catch (error: any) {
         console.error('Error creating direct message:', error);
         toast.error('Failed to start conversation');
@@ -172,10 +172,10 @@ const DirectMessagePage = () => {
         setLoading(false);
       }
     };
-    
+
     initializeDirectMessage();
   }, [session, userId, navigate]);
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -183,7 +183,7 @@ const DirectMessagePage = () => {
       </div>
     );
   }
-  
+
   return null; // This component will redirect to either /chats or /chats/:conversationId
 };
 
@@ -195,7 +195,7 @@ const ConversationPage = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -207,13 +207,13 @@ const ConversationPage = () => {
 
     return () => subscription.unsubscribe();
   }, []);
-  
+
   useEffect(() => {
     if (!session || !conversationId) return;
-    
+
     const fetchConversation = async () => {
       setLoading(true);
-      
+
       // First validate the conversation exists and user is a participant
       const { data: userParticipation, error: participationError } = await supabase
         .from('conversation_participants')
@@ -221,43 +221,43 @@ const ConversationPage = () => {
         .eq('conversation_id', conversationId)
         .eq('user_id', session.user.id)
         .single();
-        
+
       if (participationError || !userParticipation) {
         console.error('Error validating conversation access:', participationError);
         toast.error('You don\'t have access to this conversation');
         navigate('/chats');
         return;
       }
-      
+
       // Get the other participant
       const { data: participants, error: participantsError } = await supabase
         .from('conversation_participants')
         .select('user_id')
         .eq('conversation_id', conversationId)
         .neq('user_id', session.user.id);
-        
+
       if (participantsError) {
         console.error('Error fetching participants:', participantsError);
         toast.error('Failed to load conversation');
         navigate('/chats');
         return;
       }
-      
+
       if (!participants || participants.length === 0) {
         toast.error('Conversation not found');
         navigate('/chats');
         return;
       }
-      
+
       const recipientId = participants[0].user_id;
-      
+
       // Get recipient profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, display_name, username, avatar_url')
         .eq('id', recipientId)
         .single();
-        
+
       if (profileError) {
         console.error('Error fetching profile:', profileError);
         toast.error('Failed to load recipient profile');
@@ -269,14 +269,14 @@ const ConversationPage = () => {
           isOnline: false // Will update with presence later
         });
       }
-      
+
       // Get messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
         .select('id, content, created_at, sender_id, read')
         .eq('conversation_id', conversationId)
         .order('created_at');
-        
+
       if (messagesError) {
         console.error('Error fetching messages:', messagesError);
         toast.error('Failed to load messages');
@@ -289,13 +289,13 @@ const ConversationPage = () => {
           status: msg.read ? 'read' : 'delivered'
         })));
       }
-      
+
       // Mark messages as read
       if (messagesData && messagesData.length > 0) {
         const unreadMessages = messagesData
           .filter(msg => !msg.read && msg.sender_id !== session.user.id)
           .map(msg => msg.id);
-          
+
         if (unreadMessages.length > 0) {
           await supabase
             .from('messages')
@@ -303,28 +303,28 @@ const ConversationPage = () => {
             .in('id', unreadMessages);
         }
       }
-      
+
       setLoading(false);
     };
-    
+
     fetchConversation();
-    
+
     // Set up realtime subscription for new messages
     const channel = supabase
       .channel(`conversation-${conversationId}`)
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
+      .on('postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`
-        }, 
+        },
         async (payload) => {
           // Add the new message to the list
           const newMessage = payload.new as any;
-          
+
           setMessages(current => [
-            ...current, 
+            ...current,
             {
               id: newMessage.id,
               content: newMessage.content,
@@ -333,7 +333,7 @@ const ConversationPage = () => {
               status: newMessage.read ? 'read' : 'delivered'
             }
           ]);
-          
+
           // Mark message as read if it's from the other person
           if (newMessage.sender_id !== session.user.id) {
             await supabase
@@ -344,15 +344,15 @@ const ConversationPage = () => {
         }
       )
       .subscribe();
-      
+
     return () => {
       supabase.removeChannel(channel);
     };
   }, [conversationId, session, navigate]);
-  
+
   const handleSendMessage = async (content: string) => {
     if (!session || !conversationId || !content.trim()) return;
-    
+
     try {
       const { error } = await supabase
         .from('messages')
@@ -361,7 +361,7 @@ const ConversationPage = () => {
           sender_id: session.user.id,
           content: content.trim()
         });
-        
+
       if (error) {
         console.error('Error sending message:', error);
         toast.error('Failed to send message');
@@ -371,7 +371,7 @@ const ConversationPage = () => {
       toast.error('Failed to send message');
     }
   };
-  
+
   if (!session) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -379,11 +379,11 @@ const ConversationPage = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {recipient && <ChatHeader recipient={recipient} />}
-      
+
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-nuumi-pink" />
@@ -391,12 +391,12 @@ const ConversationPage = () => {
       ) : (
         <>
           <div className="flex-1 overflow-hidden">
-            <MessageList 
-              messages={messages} 
-              currentUserId={session?.user?.id} 
+            <MessageList
+              messages={messages}
+              currentUserId={session?.user?.id}
             />
           </div>
-          
+
           <MessageInput onSendMessage={handleSendMessage} />
         </>
       )}

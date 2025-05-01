@@ -38,24 +38,24 @@ const CreatePost = () => {
       console.log("No files selected");
       return;
     }
-    
+
     const file = files[0];
     console.log("File selected:", file.name, file.type, file.size);
-    
+
     // Check file type
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file');
       return;
     }
-    
+
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Image size should be less than 5MB');
       return;
     }
-    
+
     setImageFile(file);
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onload = () => {
@@ -83,43 +83,43 @@ const CreatePost = () => {
       toast.error('Please add some content to your post');
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
-      
+
       let imageUrl = null;
-      
+
       // Upload image if one is selected
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${nanoid()}.${fileExt}`;
         const filePath = `posts/${user.id}/${fileName}`;
-        
+
         console.log("Uploading image to:", filePath);
-        
+
         const { error: uploadError, data } = await supabase.storage
-          .from('media')
+          .from('posts')
           .upload(filePath, imageFile, {
             cacheControl: '3600',
             upsert: false
           });
-          
+
         if (uploadError) {
           console.error("Upload error:", uploadError);
           throw new Error(`Error uploading image: ${uploadError.message}`);
         }
-        
+
         // Get public URL
         const { data: publicUrlData } = supabase.storage
-          .from('media')
+          .from('posts')
           .getPublicUrl(filePath);
-          
+
         if (publicUrlData) {
           imageUrl = publicUrlData.publicUrl;
           console.log("Image uploaded successfully, URL:", imageUrl);
         }
       }
-      
+
       // Create post in database
       const { error: postError } = await supabase
         .from('posts')
@@ -128,12 +128,12 @@ const CreatePost = () => {
           image_url: imageUrl,
           user_id: user.id
         });
-        
+
       if (postError) {
         console.error("Post error:", postError);
         throw new Error(`Error creating post: ${postError.message}`);
       }
-      
+
       toast.success('Post created successfully');
       navigate('/feed');
     } catch (error) {
@@ -147,23 +147,23 @@ const CreatePost = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header title="Create Post" />
-      
+
       <div className="max-w-md mx-auto px-4 pt-6">
         <div className="bg-card rounded-xl p-4 mb-4">
-          <Textarea 
-            placeholder="What's on your mind?" 
+          <Textarea
+            placeholder="What's on your mind?"
             className="border-0 focus-visible:ring-0 resize-none text-base min-h-[150px]"
             rows={6}
             value={content}
             onChange={handleTextChange}
             disabled={isSubmitting}
           />
-          
+
           {imagePreview && (
             <div className="relative mt-3 rounded-xl overflow-hidden bg-secondary/30">
-              <img 
-                src={imagePreview} 
-                alt="Post preview" 
+              <img
+                src={imagePreview}
+                alt="Post preview"
                 className="w-full max-h-80 object-contain"
               />
               <button
@@ -176,9 +176,9 @@ const CreatePost = () => {
               </button>
             </div>
           )}
-          
+
           <div className="flex justify-between items-center mt-4">
-            <button 
+            <button
               className="flex items-center text-nuumi-pink hover:text-nuumi-pink/80 transition-colors"
               onClick={handleFileSelect}
               disabled={isSubmitting}
@@ -187,7 +187,7 @@ const CreatePost = () => {
               <ImagePlus size={20} className="mr-2" />
               <span>Add Photo</span>
             </button>
-            
+
             <input
               type="file"
               ref={fileInputRef}
@@ -196,9 +196,9 @@ const CreatePost = () => {
               className="hidden"
               data-testid="file-input"
             />
-            
-            <Button 
-              className="rounded-full px-6" 
+
+            <Button
+              className="rounded-full px-6"
               onClick={handleSubmit}
               disabled={isSubmitting || (!content.trim() && !imageFile)}
             >
