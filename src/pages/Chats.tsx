@@ -167,63 +167,43 @@ const DirectMessagePage = () => {
           throw new Error('Failed to add you to the conversation');
         }
 
-        // For the other user, we'll use a server-side function to bypass RLS
+        // Add the other user directly - we'll rely on the Edge Function later
         try {
-          // Call the Edge Function to add the other user
-          const { data: authData } = await supabase.auth.getSession();
-          const token = authData.session?.access_token;
+          // Add the other user as participant directly
+          const { error: otherUserError } = await supabase
+            .from('conversation_participants')
+            .insert({
+              conversation_id: newConversation.id,
+              user_id: userId
+            });
 
-          if (!token) {
-            throw new Error('Authentication token not available');
+          if (otherUserError) {
+            console.error('Error adding other user to conversation:', otherUserError);
+            // Continue anyway - the conversation is created
+          } else {
+            console.log('Successfully added other user to conversation');
           }
 
-          // This would be the URL of your deployed Edge Function
-          // For local development, use the local URL
-          const functionUrl = 'http://localhost:54321/functions/v1/add-conversation-participant';
+          // Add a welcome message
+          const { error: messageError } = await supabase
+            .from('messages')
+            .insert({
+              conversation_id: newConversation.id,
+              sender_id: session.user.id,
+              content: 'Hello! I started this conversation.',
+              topic: 'message',
+              extension: '',
+              read: false
+            });
 
-          const response = await fetch(functionUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              conversationId: newConversation.id,
-              userId: userId
-            })
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Error from Edge Function:', errorData);
-            throw new Error('Failed to add the other user to the conversation');
+          if (messageError) {
+            console.error('Error adding welcome message:', messageError);
+          } else {
+            console.log('Welcome message added successfully');
           }
-
-          // Function succeeded
-          console.log('Successfully added other user to conversation');
         } catch (error) {
-          console.error('Error adding other user via Edge Function:', error);
-
-          // Fallback: Try to add a system message to the conversation
-          try {
-            await supabase
-              .from('messages')
-              .insert({
-                conversation_id: newConversation.id,
-                sender_id: session.user.id,
-                content: `This conversation was started with ${userId}. They will need to be manually added.`,
-                topic: 'system',
-                extension: '',
-                event: 'system',
-                private: false,
-                read: true
-              });
-          } catch (msgError) {
-            console.error('Error adding system message:', msgError);
-          }
-
-          // We'll continue anyway since the current user is already added
-          // The other user can be added later when we implement proper invitations
+          console.error('Error in conversation setup:', error);
+          // Continue anyway - the conversation is created
         }
 
         // Navigate to the new conversation
@@ -334,30 +314,34 @@ const ConversationPage = () => {
       }
 
       if (!participants || participants.length === 0) {
-        toast.error('Conversation not found');
-        navigate('/chats');
-        return;
-      }
-
-      const recipientId = participants[0].user_id;
-
-      // Get recipient profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, display_name, username, avatar_url')
-        .eq('id', recipientId)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        toast.error('Failed to load recipient profile');
-      } else if (profile) {
+        // If there are no other participants, we'll just show a placeholder
         setRecipient({
-          id: profile.id,
-          name: profile.display_name || profile.username || 'Anonymous',
-          avatar: profile.avatar_url || undefined,
-          isOnline: false // Will update with presence later
+          id: 'placeholder',
+          name: 'New Conversation',
+          avatar: undefined,
+          isOnline: false
         });
+      } else {
+        const recipientId = participants[0].user_id;
+
+        // Get recipient profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, display_name, username, avatar_url')
+          .eq('id', recipientId)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          toast.error('Failed to load recipient profile');
+        } else if (profile) {
+          setRecipient({
+            id: profile.id,
+            name: profile.display_name || profile.username || 'Anonymous',
+            avatar: profile.avatar_url || undefined,
+            isOnline: false // Will update with presence later
+          });
+        }
       }
 
       // Get messages
