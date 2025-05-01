@@ -167,21 +167,52 @@ const DirectMessagePage = () => {
           throw new Error('Failed to add you to the conversation');
         }
 
-        // Add the other user directly - we'll rely on the Edge Function later
+        // Use the Edge Function to add the other user
         try {
-          // Add the other user as participant directly
-          const { error: otherUserError } = await supabase
-            .from('conversation_participants')
-            .insert({
-              conversation_id: newConversation.id,
-              user_id: userId
-            });
+          // Get auth token
+          const { data: authData } = await supabase.auth.getSession();
+          const token = authData.session?.access_token;
 
-          if (otherUserError) {
-            console.error('Error adding other user to conversation:', otherUserError);
-            // Continue anyway - the conversation is created
+          if (!token) {
+            throw new Error('Authentication token not available');
+          }
+
+          // Call the Edge Function
+          const functionUrl = `${supabase.supabaseUrl}/functions/v1/add-participant`;
+          console.log('Calling Edge Function:', functionUrl);
+
+          const response = await fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              conversationId: newConversation.id,
+              userId: userId
+            })
+          });
+
+          const result = await response.json();
+          console.log('Edge Function result:', result);
+
+          if (!response.ok) {
+            console.error('Error from Edge Function:', result);
+            // Try direct insertion as fallback
+            const { error: directError } = await supabase
+              .from('conversation_participants')
+              .insert({
+                conversation_id: newConversation.id,
+                user_id: userId
+              });
+
+            if (directError) {
+              console.error('Fallback also failed:', directError);
+            } else {
+              console.log('Fallback succeeded');
+            }
           } else {
-            console.log('Successfully added other user to conversation');
+            console.log('Successfully added other user via Edge Function');
           }
 
           // Add a welcome message
