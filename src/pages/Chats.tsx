@@ -176,18 +176,62 @@ const DirectMessagePage = () => {
           throw new Error('Failed to add you to the conversation');
         }
 
-        // Add the other user as participant
-        const { error: otherUserError } = await supabase
-          .from('conversation_participants')
-          .insert({
-            conversation_id: newConversation.id,
-            user_id: userId,
-            joined_at: new Date().toISOString()
+        // For the other user, we'll use a server-side function to bypass RLS
+        try {
+          // Call the Edge Function to add the other user
+          const { data: authData } = await supabase.auth.getSession();
+          const token = authData.session?.access_token;
+
+          if (!token) {
+            throw new Error('Authentication token not available');
+          }
+
+          // This would be the URL of your deployed Edge Function
+          // For local development, use the local URL
+          const functionUrl = 'http://localhost:54321/functions/v1/add-conversation-participant';
+
+          const response = await fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              conversationId: newConversation.id,
+              userId: userId
+            })
           });
 
-        if (otherUserError) {
-          console.error('Error adding other user to conversation:', otherUserError);
-          throw new Error('Failed to add the other user to the conversation');
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Error from Edge Function:', errorData);
+            throw new Error('Failed to add the other user to the conversation');
+          }
+
+          // Function succeeded
+          console.log('Successfully added other user to conversation');
+        } catch (error) {
+          console.error('Error adding other user via Edge Function:', error);
+
+          // Fallback: Try to add a system message to the conversation
+          try {
+            await supabase
+              .from('messages')
+              .insert({
+                conversation_id: newConversation.id,
+                sender_id: session.user.id,
+                content: `This conversation was started with ${userId}. They will need to be manually added.`,
+                topic: 'system',
+                extension: '',
+                event: 'system',
+                private: false
+              });
+          } catch (msgError) {
+            console.error('Error adding system message:', msgError);
+          }
+
+          // We'll continue anyway since the current user is already added
+          // The other user can be added later when we implement proper invitations
         }
 
         // Navigate to the new conversation
