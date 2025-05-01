@@ -106,8 +106,8 @@ serve(async (req) => {
       .from('conversation_participants')
       .insert({
         conversation_id: conversationId,
-        user_id: userId,
-        joined_at: new Date().toISOString()
+        user_id: userId
+        // created_at will be set automatically by the database
       })
       .select('id')
       .single()

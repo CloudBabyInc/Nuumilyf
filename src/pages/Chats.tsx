@@ -141,19 +141,10 @@ const DirectMessagePage = () => {
         }
 
         // Create new conversation if none exists
+        // The table only has id, created_at, and updated_at columns with default values
         const { data: newConversation, error: newConversationError } = await supabase
           .from('conversations')
-          .insert({
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            last_message: '',
-            is_group: false,
-            name: null,
-            topic: '',
-            extension: '',
-            event: 'created',
-            private: false
-          })
+          .insert({})  // Empty object - let the database use default values
           .select('id')
           .single();
 
@@ -167,8 +158,8 @@ const DirectMessagePage = () => {
           .from('conversation_participants')
           .insert({
             conversation_id: newConversation.id,
-            user_id: session.user.id,
-            joined_at: new Date().toISOString()
+            user_id: session.user.id
+            // created_at will be set automatically by the database
           });
 
         if (currentUserError) {
@@ -224,7 +215,8 @@ const DirectMessagePage = () => {
                 topic: 'system',
                 extension: '',
                 event: 'system',
-                private: false
+                private: false,
+                read: true
               });
           } catch (msgError) {
             console.error('Error adding system message:', msgError);
@@ -240,15 +232,26 @@ const DirectMessagePage = () => {
       } catch (error: any) {
         console.error('Error creating direct message:', error);
 
+        // Log detailed error information
+        if (error.details) console.error('Error details:', error.details);
+        if (error.hint) console.error('Error hint:', error.hint);
+        if (error.code) console.error('Error code:', error.code);
+
         // Show more specific error message if available
         if (error.message) {
-          toast.error(error.message);
+          toast.error(`Error: ${error.message}`);
         } else if (error.code === '23505') {
           toast.error('A conversation with this user already exists');
         } else if (error.code === '23503') {
           toast.error('User not found');
+        } else if (error.code === '42P01') {
+          toast.error('Database table not found. Please contact support.');
+        } else if (error.code && error.code.startsWith('42')) {
+          toast.error('Database schema error. Please contact support.');
+        } else if (error.code && error.code.startsWith('23')) {
+          toast.error('Database constraint violation. Please try again later.');
         } else {
-          toast.error('Failed to start conversation');
+          toast.error('Failed to start conversation. Please try again later.');
         }
 
         // Add a small delay before navigating to ensure the toast is visible
@@ -447,10 +450,11 @@ const ConversationPage = () => {
           conversation_id: conversationId,
           sender_id: session.user.id,
           content: content.trim(),
-          topic: '', // Add empty string for required field
-          extension: '', // Add empty string for required field
-          event: 'message', // Add default event type
-          private: false // Set default privacy setting
+          topic: 'message', // Required field
+          extension: '', // Required field
+          event: 'message', // Optional but good to set
+          private: false, // Optional but good to set
+          read: false // Optional but good to set
         });
 
       if (error) {
