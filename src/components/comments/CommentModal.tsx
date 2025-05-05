@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,7 @@ import {
 import { X } from 'lucide-react';
 import CommentList from './CommentList';
 import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CommentModalProps {
   isOpen: boolean;
@@ -18,6 +19,11 @@ interface CommentModalProps {
   currentUser?: {
     id: string;
     avatarUrl?: string;
+    username?: string;
+  };
+  postAuthor?: {
+    id: string;
+    username: string;
   };
   className?: string;
 }
@@ -28,8 +34,18 @@ const CommentModal: React.FC<CommentModalProps> = ({
   postId,
   postTitle,
   currentUser,
+  postAuthor,
   className
 }) => {
+  const queryClient = useQueryClient();
+
+  // Force refresh comments when the modal opens
+  useEffect(() => {
+    if (isOpen && postId) {
+      // Force a refresh of the comments data
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+    }
+  }, [isOpen, postId, queryClient]);
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
@@ -50,6 +66,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
             <CommentList
               postId={postId}
               currentUser={currentUser}
+              postAuthor={postAuthor}
               className="py-2"
             />
           </div>

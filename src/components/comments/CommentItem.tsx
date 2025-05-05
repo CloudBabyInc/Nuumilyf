@@ -1,18 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronDown, ChevronUp, Heart, MoreHorizontal, Reply, Trash2 } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+
+// Add global CSS for forced visible replies
+import './comments.css';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+// Removed unused imports
 import CommentInput from './CommentInput';
 
 export interface CommentType {
@@ -31,12 +33,13 @@ export interface CommentType {
     avatar_url: string | null;
   };
   replies?: CommentType[];
+  isNew?: boolean; // Flag to highlight newly added comments/replies
 }
 
 interface CommentItemProps {
   comment: CommentType;
   currentUserId?: string;
-  onReply?: (commentId: string, authorUsername: string) => void;
+  onReply?: (commentId: string, authorUsername: string, content?: string) => void;
   onDelete?: (commentId: string) => void;
   isReply?: boolean; // Used for styling
   depth?: number;
@@ -48,7 +51,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   currentUserId,
   onReply,
   onDelete,
-  isReply = false,
+  // isReply param is unused but kept for API compatibility
   depth = 0,
   onLike
 }) => {
@@ -56,7 +59,21 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const [isLiked, setIsLiked] = useState(comment.isLiked || false);
   const [likesCount, setLikesCount] = useState(comment.likes_count || 0);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
-  const [showReplies, setShowReplies] = useState(depth < 2); // Auto-expand first two levels
+  // Allow toggling replies
+  const [showReplies, setShowReplies] = useState(false);
+
+  // Ensure replies array exists and show new replies
+  useEffect(() => {
+    // Ensure comment.replies is always an array
+    if (!comment.replies) {
+      comment.replies = [];
+    }
+
+    // Show replies by default if there are new replies or if this is a newly added reply
+    if (comment.replies.some(reply => reply.isNew) || comment.isNew) {
+      setShowReplies(true);
+    }
+  }, [comment.replies, comment.isNew]);
   const [showReplyInput, setShowReplyInput] = useState(false);
   const maxDepth = 8; // Support deeper nesting
 
@@ -81,9 +98,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   const handleReply = () => {
+    // Just show the reply input - don't call onReply yet
     setShowReplyInput(true);
     setShowReplies(true); // Always show replies when replying
-    onReply?.(comment.id, comment.author.username);
   };
 
   const handleDelete = async () => {
@@ -111,10 +128,13 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   return (
-    <div className={cn(
-      "py-3 transition-colors duration-200 hover:bg-muted/20 rounded-lg",
-      getIndentationStyle()
-    )}>
+    <div
+      id={`comment-${comment.id}`}
+      className={cn(
+        "py-3 transition-colors duration-200 hover:bg-muted/20 rounded-lg",
+        getIndentationStyle(),
+        comment.isNew && "bg-nuumi-pink/5 dark:bg-nuumi-pink/10 border-l-2 border-nuumi-pink animate-pulse"
+      )}>
       <div className="flex">
         <Avatar
           src={comment.author.avatar_url || undefined}
@@ -218,60 +238,70 @@ const CommentItem: React.FC<CommentItemProps> = ({
             <div className="mt-3 mb-2">
               <CommentInput
                 avatarUrl={undefined} // Will be filled by parent component
-                onSubmit={(_: string) => {
-                  // We don't use the content here, just trigger the reply in parent
-                  onReply?.(comment.id, comment.author.username);
-                  // The actual submission is handled by the parent component
-                  setShowReplyInput(false);
+                username={currentUserId ? "You" : undefined} // Add username for current user
+                onSubmit={(content: string) => {
+                  if (content.trim()) {
+                    // Call the parent's onReply handler with the comment content
+                    onReply?.(comment.id, comment.author.username, content);
+
+                    // Hide the reply input
+                    setShowReplyInput(false);
+
+                    // Make sure replies are visible
+                    setShowReplies(true);
+                  }
                 }}
                 placeholder={`Reply to @${comment.author.username}...`}
                 autoFocus={true}
-                className="pl-2"
+                className="pl-2 reply-input"
                 onCancelReply={() => setShowReplyInput(false)}
               />
             </div>
           )}
 
-          {/* Show replies if any */}
+          {/* ENHANCED REPLIES SECTION WITH DROPDOWN */}
           {comment.replies && comment.replies.length > 0 && (
             <div className="mt-3 relative">
-              {/* Stylish dropdown button */}
+              {/* Enhanced dropdown button */}
               <motion.button
                 onClick={() => setShowReplies(!showReplies)}
-                className="flex items-center gap-2 rounded-full bg-nuumi-pink/10 px-3 py-1 text-xs font-medium text-nuumi-pink hover:bg-nuumi-pink/20 transition-colors"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                className="flex items-center gap-2 rounded-full bg-nuumi-pink/20 px-4 py-1.5 text-xs font-medium text-nuumi-pink hover:bg-nuumi-pink/30 dark:bg-nuumi-pink/30 dark:hover:bg-nuumi-pink/40 shadow-md border border-nuumi-pink/30 transition-all mb-2"
+                whileHover={{ scale: 1.05, y: -2, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  y: [10, -3, 0],
+                  transition: { duration: 0.5, type: "spring", stiffness: 300 }
+                }}
               >
                 {showReplies ? (
                   <>
-                    <ChevronUp size={14} />
-                    <span>Hide replies</span>
+                    <ChevronUp size={16} className="text-nuumi-pink" />
+                    <span>Hide {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}</span>
                   </>
                 ) : (
                   <>
-                    <ChevronDown size={14} />
-                    <span>{`${comment.replies.length} ${comment.replies.length === 1 ? 'reply' : 'replies'}`}</span>
+                    <ChevronDown size={16} className="text-nuumi-pink animate-bounce" />
+                    <span className="font-semibold">{`${comment.replies.length} ${comment.replies.length === 1 ? 'reply' : 'replies'}`}</span>
+                    {comment.replies?.some(reply => reply.isNew) && (
+                      <span className="ml-1 text-[10px] bg-nuumi-pink text-white rounded-full px-1.5 py-0.5 animate-pulse">NEW</span>
+                    )}
                   </>
                 )}
               </motion.button>
 
               {/* Vertical line connecting to replies */}
               {showReplies && (
-                <div className="absolute left-4 top-7 bottom-0 w-0.5 bg-gradient-to-b from-nuumi-pink/30 to-transparent" />
+                <div className="absolute left-4 top-12 bottom-0 w-0.5 bg-gradient-to-b from-nuumi-pink to-nuumi-pink/10 dark:from-nuumi-pink/70 dark:to-transparent" />
               )}
 
-              <AnimatePresence>
-                {showReplies && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="mt-2"
-                  >
-                    {comment.replies.map(reply => (
+              {/* SIMPLIFIED REPLIES SECTION - NO ANIMATION */}
+              {showReplies && (
+                <div className="replies-container mt-2 pl-2 border-l-2 border-nuumi-pink/10 dark:border-nuumi-pink/20 rounded-bl-lg">
+                  {comment.replies.length > 0 ? (
+                    comment.replies.map(reply => (
                       <CommentItem
                         key={reply.id}
                         comment={reply}
@@ -282,10 +312,14 @@ const CommentItem: React.FC<CommentItemProps> = ({
                         depth={depth + 1}
                         onLike={onLike}
                       />
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    ))
+                  ) : (
+                    <div className="py-2 text-sm text-muted-foreground">
+                      No replies yet. Be the first to reply!
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

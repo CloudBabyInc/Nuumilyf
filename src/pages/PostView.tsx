@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import useAuth from '@/hooks/useAuth';
 
 // Define the PostType interface based on what we need
 interface PostType {
@@ -32,6 +33,8 @@ const PostView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { user, session } = useAuth();
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -152,6 +155,32 @@ const PostView = () => {
     fetchPost();
   }, [postId]);
 
+  // Fetch current user's profile information
+  useEffect(() => {
+    const fetchCurrentUserProfile = async () => {
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching user profile:', error);
+            return;
+          }
+
+          setCurrentUserProfile(data);
+        } catch (err) {
+          console.error('Error in fetchCurrentUserProfile:', err);
+        }
+      }
+    };
+
+    fetchCurrentUserProfile();
+  }, [user]);
+
   const handleBackToFeed = () => {
     navigate('/feed');
   };
@@ -271,6 +300,12 @@ const PostView = () => {
             comments={post.comments_count}
             reposts={post.reposts_count}
             isLiked={post.isLiked}
+            currentUser={user ? {
+              id: user.id,
+              avatarUrl: currentUserProfile?.avatar_url,
+              username: currentUserProfile?.username,
+              displayName: currentUserProfile?.display_name
+            } : undefined}
             onLike={() => handleLike(post.id)}
             onComment={() => {}}
             onRepost={() => {}}

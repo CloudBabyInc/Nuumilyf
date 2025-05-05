@@ -13,6 +13,7 @@ interface CommentInputProps {
   replyingTo?: string;
   onCancelReply?: () => void;
   className?: string;
+  username?: string; // Add username prop
 }
 
 const CommentInput: React.FC<CommentInputProps> = ({
@@ -22,7 +23,8 @@ const CommentInput: React.FC<CommentInputProps> = ({
   autoFocus = false,
   replyingTo,
   onCancelReply,
-  className
+  className,
+  username
 }) => {
   const [content, setContent] = useState('');
   const [isFocused, setIsFocused] = useState(autoFocus);
@@ -52,7 +54,12 @@ const CommentInput: React.FC<CommentInputProps> = ({
 
   return (
     <div className={cn("flex items-start gap-2", className)}>
-      <Avatar src={avatarUrl} alt="Your avatar" size="sm" className="flex-shrink-0 mt-1" />
+      <div className="flex flex-col items-center">
+        <Avatar src={avatarUrl} alt={username || "Your avatar"} size="sm" className="flex-shrink-0" />
+        <span className="text-xs font-medium text-foreground mt-1 whitespace-nowrap">
+          {username ? (username.length > 8 ? username.substring(0, 8) + '...' : username) : 'You'}
+        </span>
+      </div>
 
       <div className="flex-1 relative">
         {replyingTo && (

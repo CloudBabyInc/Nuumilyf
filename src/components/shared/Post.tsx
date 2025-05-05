@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, MessageSquare, Repeat2, Send } from 'lucide-react';
 import Avatar from './Avatar';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,8 @@ interface PostProps {
   currentUser?: {
     id: string;
     avatarUrl?: string;
+    username?: string; // Add username property
+    displayName?: string; // Add displayName property
   };
   onLike?: () => void;
   onComment?: () => void;
@@ -62,6 +64,11 @@ const Post = ({
 
   // Comment modal state
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+
+  // Debug log for currentUser
+  useEffect(() => {
+    console.log('Post component - currentUser:', currentUser, 'for post:', id);
+  }, [currentUser, id]);
 
   // Handle like with optimistic update
   const handleLike = () => {
@@ -269,6 +276,10 @@ const Post = ({
         postId={id}
         postTitle={content.length > 30 ? `${content.substring(0, 30)}...` : content}
         currentUser={currentUser}
+        postAuthor={{
+          id: author.id,
+          username: author.username
+        }}
       />
     </div>
   );

@@ -456,7 +456,9 @@ const Feed = () => {
               isLiked={post.isLiked}
               currentUser={session ? {
                 id: session.user.id,
-                avatarUrl: session.user.user_metadata?.avatar_url
+                avatarUrl: session.user.user_metadata?.avatar_url,
+                username: session.user.user_metadata?.username || session.user.email?.split('@')[0],
+                displayName: session.user.user_metadata?.display_name || session.user.user_metadata?.username || session.user.email?.split('@')[0]
               } : undefined}
               onLike={() => handleLike(post.id)}
               onComment={() => handleComment(post.id)}

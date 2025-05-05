@@ -13,6 +13,11 @@ interface CommentListProps {
   currentUser?: {
     id: string;
     avatarUrl?: string;
+    username?: string;
+  };
+  postAuthor?: {
+    id: string;
+    username: string;
   };
   className?: string;
 }
@@ -20,118 +25,124 @@ interface CommentListProps {
 const CommentList: React.FC<CommentListProps> = ({
   postId,
   currentUser,
+  postAuthor,
   className
 }) => {
   const queryClient = useQueryClient();
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; username: string } | null>(null);
+  const [newReplyIds, setNewReplyIds] = useState<string[]>([]); // Track IDs of newly added replies
 
-  // Fetch comments
+  // Force refresh comments when the component mounts or when postId changes
+  useEffect(() => {
+    // Force a refresh of the comments data
+    queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+  }, [postId, queryClient]);
+
+  // Fetch comments with a more stable approach
   const { data: comments, isLoading, error } = useQuery({
     queryKey: ['comments', postId],
     queryFn: async () => {
-      // Fetch all comments for this post
-      const { data, error } = await supabase
-        .from('comments')
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          post_id,
-          parent_id
-        `)
-        .eq('post_id', postId)
-        .order('created_at', { ascending: true });
+      try {
+        console.log('Fetching comments for postId:', postId);
 
-      if (error) throw error;
+        // Fetch ALL comments for this post in a single query
+        const { data, error } = await supabase
+          .from('comments')
+          .select(`
+            *,
+            profiles:user_id(id, display_name, username, avatar_url)
+          `)
+          .eq('post_id', postId)
+          .order('created_at', { ascending: true });
 
-      // Fetch user details for each comment
-      const commentsWithAuthors = await Promise.all(data.map(async (comment) => {
-        const { data: userData, error: userError } = await supabase
-          .from('profiles')
-          .select('id, display_name, username, avatar_url')
-          .eq('id', comment.user_id)
-          .single();
+        if (error) throw error;
 
-        if (userError) {
-          console.error('Error fetching user data:', userError);
-          return null;
+        // If there are no comments, return an empty array
+        if (!data || data.length === 0) {
+          return [];
         }
 
-        // Get likes count
-        const { count: likesCount, error: likesError } = await supabase
-          .from('comment_likes')
-          .select('id', { count: 'exact', head: true })
-          .eq('comment_id', comment.id);
+        // Process comments in a simpler way
+        const processedComments = data.map(comment => {
+          // Extract profile data
+          const profile = comment.profiles || {};
 
-        if (likesError) {
-          console.error('Error fetching likes count:', likesError);
-        }
+          return {
+            id: comment.id,
+            content: comment.content,
+            created_at: comment.created_at,
+            user_id: comment.user_id,
+            post_id: comment.post_id,
+            parent_id: comment.parent_id,
+            author: {
+              id: profile.id || comment.user_id,
+              name: profile.display_name || profile.username || 'User',
+              username: profile.username || 'user',
+              avatar_url: profile.avatar_url
+            },
+            likes_count: 0, // We'll handle likes separately
+            isLiked: false,
+            replies: [] // Will be filled later
+          };
+        });
 
-        // Check if current user liked this comment
-        let isLiked = false;
-        if (currentUser?.id) {
-          const { data: likeData, error: likeError } = await supabase
-            .from('comment_likes')
-            .select('id')
-            .eq('comment_id', comment.id)
-            .eq('user_id', currentUser.id)
-            .maybeSingle();
+        const validComments = processedComments as CommentType[];
 
-          if (likeError) {
-            console.error('Error checking like status:', likeError);
-          }
+        // IMPROVED APPROACH FOR NESTED REPLIES
 
-          isLiked = !!likeData;
-        }
+        // Create a map of all comments by ID for quick lookup
+        const commentMap = new Map<string, CommentType>();
+        validComments.forEach(comment => {
+          // Ensure each comment has a replies array
+          comment.replies = [];
+          commentMap.set(comment.id, comment);
+        });
 
-        return {
-          ...comment,
-          author: {
-            id: userData.id,
-            name: userData.display_name || userData.username,
-            username: userData.username,
-            avatar_url: userData.avatar_url
-          },
-          likes_count: likesCount || 0,
-          isLiked,
-          replies: [] // Will be filled later
-        };
-      }));
+        // Separate root comments and replies
+        const rootComments: CommentType[] = [];
 
-      const validComments = commentsWithAuthors.filter(Boolean) as CommentType[];
-
-      // Organize comments into a tree structure
-      const commentMap = new Map<string, CommentType>();
-      const rootComments: CommentType[] = [];
-
-      // First, create a map of all comments by ID
-      validComments.forEach(comment => {
-        commentMap.set(comment.id, comment);
-      });
-
-      // Then, organize them into a tree
-      validComments.forEach(comment => {
-        if (comment.parent_id) {
-          // This is a reply, add it to its parent's replies array
-          const parentComment = commentMap.get(comment.parent_id);
-          if (parentComment) {
-            parentComment.replies = parentComment.replies || [];
-            parentComment.replies.push(comment);
+        // Process all comments to build the tree
+        validComments.forEach(comment => {
+          if (comment.parent_id) {
+            // This is a reply - find its parent and add it to the parent's replies
+            const parentComment = commentMap.get(comment.parent_id);
+            if (parentComment) {
+              if (!parentComment.replies) {
+                parentComment.replies = [];
+              }
+              parentComment.replies.push(comment);
+            } else {
+              // If parent doesn't exist (shouldn't happen), treat as root
+              rootComments.push(comment);
+            }
           } else {
-            // If parent doesn't exist (shouldn't happen), treat as root
+            // This is a root comment
             rootComments.push(comment);
           }
-        } else {
-          // This is a root comment
-          rootComments.push(comment);
-        }
-      });
+        });
 
-      // Sort root comments by newest first
-      return rootComments.sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+        // Sort root comments by newest first
+        const sortedComments = rootComments.sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        console.log('Final sorted comments with replies:',
+          sortedComments.map(c => ({
+            id: c.id,
+            content: c.content.substring(0, 20) + '...',
+            replyCount: c.replies?.length || 0,
+            replies: c.replies?.map(r => ({
+              id: r.id,
+              content: r.content.substring(0, 20) + '...'
+            }))
+          }))
+        );
+
+        return sortedComments;
+      } catch (error) {
+        console.error('Error fetching comments:', error);
+        throw error;
+      }
     },
     enabled: !!postId
   });
@@ -144,24 +155,15 @@ const CommentList: React.FC<CommentListProps> = ({
     }
 
     try {
-      // If replying to a comment, handle differently
+      // If replying to a comment, use the handleReply function
       if (replyingTo) {
-        const { data, error } = await supabase
-          .from('comments')
-          .insert({
-            content,
-            post_id: postId,
-            user_id: currentUser.id,
-            parent_id: replyingTo.commentId // Set the parent_id for nested replies
-          })
-          .select();
+        // Call handleReply with the content
+        await handleReply(replyingTo.commentId, replyingTo.username, content);
 
-        if (error) throw error;
-
-        toast.success('Reply added');
+        // Clear the reply state
         setReplyingTo(null);
       } else {
-        // Regular comment (top-level)
+        // Regular comment (top-level) - we're commenting on the post itself
         const { data, error } = await supabase
           .from('comments')
           .insert({
@@ -173,6 +175,16 @@ const CommentList: React.FC<CommentListProps> = ({
           .select();
 
         if (error) throw error;
+
+        // Store the new comment ID to highlight it
+        if (data && data.length > 0) {
+          setNewReplyIds(prev => [...prev, data[0].id]);
+
+          // Remove the "new" status after 5 seconds
+          setTimeout(() => {
+            setNewReplyIds(prev => prev.filter(id => id !== data[0].id));
+          }, 5000);
+        }
 
         toast.success('Comment added');
       }
@@ -260,15 +272,74 @@ const CommentList: React.FC<CommentListProps> = ({
     }
   };
 
-  // Handle reply
-  const handleReply = (commentId: string, username: string) => {
-    setReplyingTo({ commentId, username });
+  // Handle reply - now with content parameter
+  const handleReply = async (commentId: string, username: string, content?: string) => {
+    if (content) {
+      // This is the actual reply submission with content
+      if (!currentUser) {
+        toast.error('You must be logged in to reply');
+        return;
+      }
+
+      try {
+        // Insert the reply into the database
+        const { data, error } = await supabase
+          .from('comments')
+          .insert({
+            content,
+            post_id: postId,
+            user_id: currentUser.id,
+            parent_id: commentId // Set the parent_id for nested replies
+          })
+          .select();
+
+        if (error) {
+          toast.error('Failed to add reply');
+          return;
+        }
+
+        // Add the new reply to the newReplyIds state
+        if (data && data.length > 0) {
+          setNewReplyIds(prev => [...prev, data[0].id]);
+
+          // Remove the "new" status after 5 seconds
+          setTimeout(() => {
+            setNewReplyIds(prev => prev.filter(id => id !== data[0].id));
+          }, 5000);
+        }
+
+        // Show success message
+        toast.success(`Reply to @${username} added`);
+
+        // Force refresh data
+        queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+
+        // Find and click the dropdown button to show replies
+        setTimeout(() => {
+          const commentElement = document.getElementById(`comment-${commentId}`);
+          if (commentElement) {
+            const dropdownButton = commentElement.querySelector('button[class*="bg-nuumi-pink"]');
+            if (dropdownButton) {
+              (dropdownButton as HTMLButtonElement).click();
+            }
+          }
+        }, 500);
+      } catch (error) {
+        toast.error('Failed to add reply');
+      }
+    } else {
+      // This is just setting up the reply UI - no content yet
+      setReplyingTo({ commentId, username });
+    }
   };
+
+
 
   if (error) {
     return (
       <div className="py-4 text-center text-muted-foreground">
         <p>Failed to load comments. Please try again.</p>
+        <p className="text-xs text-red-500">{error.message}</p>
       </div>
     );
   }
@@ -276,14 +347,17 @@ const CommentList: React.FC<CommentListProps> = ({
   return (
     <div className={className}>
       {/* Comment input */}
-      <CommentInput
-        avatarUrl={currentUser?.avatarUrl}
-        onSubmit={handleAddComment}
-        placeholder={replyingTo ? "Write a reply..." : "Add a comment..."}
-        replyingTo={replyingTo?.username}
-        onCancelReply={() => setReplyingTo(null)}
-        className="mb-4"
-      />
+      <div className="comment-input-container">
+        <CommentInput
+          avatarUrl={currentUser?.avatarUrl}
+          username={currentUser?.username || "You"}
+          onSubmit={handleAddComment}
+          placeholder={replyingTo ? "Write a reply..." : "Add a comment..."}
+          replyingTo={replyingTo?.username || (postAuthor && !replyingTo ? postAuthor.username : undefined)}
+          onCancelReply={() => setReplyingTo(null)}
+          className="mb-4"
+        />
+      </div>
 
       {/* Comments list */}
       <div className="mt-2">
@@ -324,7 +398,14 @@ const CommentList: React.FC<CommentListProps> = ({
                 transition={{ duration: 0.2 }}
               >
                 <CommentItem
-                  comment={comment}
+                  comment={{
+                    ...comment,
+                    isNew: newReplyIds.includes(comment.id),
+                    replies: comment.replies?.length ? comment.replies.map(reply => ({
+                      ...reply,
+                      isNew: newReplyIds.includes(reply.id)
+                    })) : []
+                  }}
                   currentUserId={currentUser?.id}
                   onReply={handleReply}
                   onDelete={handleDeleteComment}

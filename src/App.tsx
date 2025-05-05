@@ -22,6 +22,9 @@ import PostView from "./pages/PostView";
 import TestChat from "./pages/TestChat";
 import ThemeProvider from "./components/theme/ThemeProvider";
 
+// Import global CSS for comments
+import "./components/comments/comments.css";
+
 // Create a wrapper component that conditionally renders the Navbar
 const ConditionalNavbar = () => {
   const location = useLocation();
