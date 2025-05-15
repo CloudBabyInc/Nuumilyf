@@ -20,6 +20,8 @@ import Chats from "./pages/Chats";
 import Notifications from "./pages/Notifications";
 import PostView from "./pages/PostView";
 import TestChat from "./pages/TestChat";
+import MealPlanning from "./pages/MealPlanning";
+import CreateMeal from "./pages/CreateMeal";
 import ThemeProvider from "./components/theme/ThemeProvider";
 
 // Import global CSS for comments
@@ -31,7 +33,7 @@ const ConditionalNavbar = () => {
   const pathname = location.pathname;
 
   // Only show navbar on these routes
-  const showNavbarRoutes = ['/feed', '/chats', '/profile', '/marketplace', '/create', '/notifications', '/post'];
+  const showNavbarRoutes = ['/feed', '/chats', '/profile', '/marketplace', '/create', '/notifications', '/post', '/meal-planning', '/create-meal'];
 
   // Routes that should hide the navbar (like when in a specific conversation)
   const hideNavbarRoutes = ['/chats/'];
@@ -68,6 +70,8 @@ const AppRoutes = () => {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/post/:postId" element={<PostView />} />
         <Route path="/test-chat" element={<TestChat />} />
+        <Route path="/meal-planning" element={<MealPlanning />} />
+        <Route path="/create-meal" element={<CreateMeal />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

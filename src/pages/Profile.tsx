@@ -565,8 +565,8 @@ const Profile = () => {
               <div className="grid grid-cols-3 gap-3">
                 <SupportCard
                   icon={Utensils}
-                  title="Plan Meals"
-                  onClick={() => console.log('Plan Meals clicked')}
+                  title="Baby & Mother Meals"
+                  onClick={() => navigate('/meal-planning')}
                 />
 
                 <SupportCard
