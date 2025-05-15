@@ -1,0 +1,3013 @@
+diff --git a/src/components/meals/AIMealCard.tsx b/src/components/meals/AIMealCard.tsx
+new file mode 100644
+index 00000000..17e4144c
+--- /dev/null
++++ b/src/components/meals/AIMealCard.tsx
+@@ -0,0 +1,119 @@
++import React from 'react';
++import { motion } from 'framer-motion';
++import { Plus, Info } from 'lucide-react';
++import { Button } from '@/components/ui/button';
++import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
++import { Badge } from '@/components/ui/badge';
++import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
++
++interface Meal {
++  name: string;
++  description: string;
++  nutritionalBenefits?: string;
++  suitabilityReason?: string;
++  imageEmoji: string;
++  ingredients?: string[];
++  instructions?: string[];
++  nutrients?: {
++    calories: number;
++    protein: number;
++    carbs: number;
++    fat: number;
++  };
++  benefits?: string;
++}
++
++interface AIMealCardProps {
++  meal: Meal;
++  onSelect: () => void;
++}
++
++const AIMealCard: React.FC<AIMealCardProps> = ({ meal, onSelect }) => {
++  return (
++    <motion.div
++      initial={{ opacity: 0, y: 20 }}
++      animate={{ opacity: 1, y: 0 }}
++      transition={{ duration: 0.3 }}
++    >
++      <Card className="overflow-hidden">
++        <div className="relative h-24 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-nuumi-pink/10 to-nuumi-pink/30">
++          <div className="text-6xl">{meal.imageEmoji || '🍽️'}</div>
++        </div>
++        
++        <CardHeader className="pb-2">
++          <CardTitle className="text-lg">{meal.name}</CardTitle>
++          <CardDescription className="line-clamp-2">{meal.description}</CardDescription>
++        </CardHeader>
++        
++        <CardContent className="pb-2">
++          {meal.nutrients && (
++            <div className="flex justify-between text-xs text-muted-foreground mb-2">
++              <span>{meal.nutrients.calories} kcal</span>
++              <span>{meal.nutrients.protein}g protein</span>
++              <span>{meal.nutrients.carbs}g carbs</span>
++              <span>{meal.nutrients.fat}g fat</span>
++            </div>
++          )}
++          
++          {(meal.nutritionalBenefits || meal.benefits) && (
++            <Dialog>
++              <DialogTrigger asChild>
++                <Button variant="ghost" size="sm" className="w-full flex items-center justify-center text-xs">
++                  <Info className="h-3 w-3 mr-1" />
++                  Nutritional Benefits
++                </Button>
++              </DialogTrigger>
++              <DialogContent>
++                <DialogHeader>
++                  <DialogTitle>{meal.name}</DialogTitle>
++                  <DialogDescription>Nutritional Information</DialogDescription>
++                </DialogHeader>
++                <div className="space-y-4">
++                  <div>
++                    <h4 className="font-medium mb-1">Benefits</h4>
++                    <p className="text-sm text-muted-foreground">
++                      {meal.nutritionalBenefits || meal.benefits}
++                    </p>
++                  </div>
++                  
++                  {meal.suitabilityReason && (
++                    <div>
++                      <h4 className="font-medium mb-1">Why It's Suitable</h4>
++                      <p className="text-sm text-muted-foreground">
++                        {meal.suitabilityReason}
++                      </p>
++                    </div>
++                  )}
++                  
++                  {meal.nutrients && (
++                    <div>
++                      <h4 className="font-medium mb-1">Nutrition Facts</h4>
++                      <div className="grid grid-cols-2 gap-2 text-sm">
++                        <div>Calories: {meal.nutrients.calories} kcal</div>
++                        <div>Protein: {meal.nutrients.protein}g</div>
++                        <div>Carbs: {meal.nutrients.carbs}g</div>
++                        <div>Fat: {meal.nutrients.fat}g</div>
++                      </div>
++                    </div>
++                  )}
++                </div>
++              </DialogContent>
++            </Dialog>
++          )}
++        </CardContent>
++        
++        <CardFooter>
++          <Button 
++            onClick={onSelect}
++            className="w-full bg-nuumi-pink hover:bg-nuumi-pink/90 text-white"
++          >
++            <Plus className="h-4 w-4 mr-2" />
++            Select This Meal
++          </Button>
++        </CardFooter>
++      </Card>
++    </motion.div>
++  );
++};
++
++export default AIMealCard;
+diff --git a/src/components/meals/AIMealPlanView.tsx b/src/components/meals/AIMealPlanView.tsx
+new file mode 100644
+index 00000000..8c57e7e9
+--- /dev/null
++++ b/src/components/meals/AIMealPlanView.tsx
+@@ -0,0 +1,376 @@
++import React, { useState, useEffect } from 'react';
++import { motion, AnimatePresence } from 'framer-motion';
++import { Save, ChevronDown, ChevronUp, Clock, Info, Calendar, Download } from 'lucide-react';
++import { Button } from '@/components/ui/button';
++import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
++import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
++import { Badge } from '@/components/ui/badge';
++import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
++import {
++  Dialog,
++  DialogContent,
++  DialogDescription,
++  DialogFooter,
++  DialogHeader,
++  DialogTitle,
++  DialogTrigger
++} from '@/components/ui/dialog';
++import { Input } from '@/components/ui/input';
++import { Label } from '@/components/ui/label';
++import {
++  generateGoogleCalendarUrl,
++  downloadICalFile,
++  formatMealDescription
++} from '@/utils/calendarUtils';
++
++interface MealPlan {
++  introduction: string;
++  meals: Array<{
++    name: string;
++    ingredients: string[];
++    instructions: string[];
++    nutrients: {
++      calories: number;
++      protein: number;
++      carbs: number;
++      fat: number;
++    };
++    benefits: string;
++    imageEmoji: string;
++  }>;
++  tips: string[];
++}
++
++interface AIMealPlanViewProps {
++  mealPlan: MealPlan;
++  onSave: () => void;
++  targetUser: 'mother' | 'child';
++  mealType: string;
++}
++
++const SimpleMealCard = ({ meal, index }) => {
++  return (
++    <Card className="mb-4">
++      <CardHeader>
++        <CardTitle className="flex items-center">
++          <span className="mr-2">{meal.imageEmoji || '🍽️'}</span>
++          <span>{meal.name || 'Meal'}</span>
++        </CardTitle>
++      </CardHeader>
++      <CardContent>
++        <div className="space-y-4">
++          <div>
++            <h4 className="text-sm font-medium mb-2">Ingredients</h4>
++            <ul className="text-sm space-y-1">
++              {Array.isArray(meal.ingredients) && meal.ingredients.map((ingredient, i) => (
++                <li key={i} className="flex items-start">
++                  <span className="mr-2">•</span>
++                  <span>{ingredient}</span>
++                </li>
++              ))}
++            </ul>
++          </div>
++
++          <div>
++            <h4 className="text-sm font-medium mb-2">Instructions</h4>
++            <ol className="text-sm space-y-1 list-decimal list-inside">
++              {Array.isArray(meal.instructions) && meal.instructions.map((instruction, i) => (
++                <li key={i} className="pl-1">{instruction}</li>
++              ))}
++            </ol>
++          </div>
++
++          <div>
++            <h4 className="text-sm font-medium mb-2">Nutrition Information</h4>
++            <div className="flex flex-wrap gap-2">
++              {meal.nutrients && (
++                <>
++                  <Badge variant="outline">Calories: {meal.nutrients.calories || 0}</Badge>
++                  <Badge variant="outline">Protein: {meal.nutrients.protein || 0}g</Badge>
++                  <Badge variant="outline">Carbs: {meal.nutrients.carbs || 0}g</Badge>
++                  <Badge variant="outline">Fat: {meal.nutrients.fat || 0}g</Badge>
++                </>
++              )}
++            </div>
++          </div>
++
++          {meal.benefits && (
++            <div>
++              <h4 className="text-sm font-medium mb-2">Benefits</h4>
++              <p className="text-sm text-muted-foreground">{meal.benefits}</p>
++            </div>
++          )}
++        </div>
++      </CardContent>
++    </Card>
++  );
++};
++
++const AIMealPlanView: React.FC<AIMealPlanViewProps> = ({
++  mealPlan,
++  onSave,
++  targetUser,
++  mealType
++}) => {
++  const [isClient, setIsClient] = useState(false);
++
++  // Use useEffect to ensure we're rendering on the client
++  useEffect(() => {
++    setIsClient(true);
++  }, []);
++
++  // Add error handling for mealPlan
++  if (!isClient) {
++    return (
++      <div className="p-4 text-center">
++        <p className="text-muted-foreground">Loading meal plan...</p>
++      </div>
++    );
++  }
++
++  if (!mealPlan) {
++    console.error('Meal plan is undefined or null');
++    return (
++      <div className="p-4 text-center">
++        <p className="text-red-500">Error: Invalid meal plan data</p>
++        <p className="text-muted-foreground mt-2">Please try generating a new meal plan</p>
++      </div>
++    );
++  }
++
++  if (!mealPlan.meals || !Array.isArray(mealPlan.meals) || mealPlan.meals.length === 0) {
++    console.error('Meal plan has no meals or invalid meals array:', mealPlan);
++    return (
++      <div className="p-4 text-center">
++        <p className="text-red-500">Error: No meals found in the meal plan</p>
++        <p className="text-muted-foreground mt-2">Please try generating a new meal plan</p>
++      </div>
++    );
++  }
++
++  return (
++    <div className="space-y-6">
++      {/* Calendar Dialog */}
++      <Dialog>
++        <DialogContent className="sm:max-w-md">
++          <DialogHeader>
++            <DialogTitle>Add to Calendar</DialogTitle>
++            <DialogDescription>
++              Schedule this meal in your calendar
++            </DialogDescription>
++          </DialogHeader>
++
++          <div className="grid gap-4 py-4">
++            <div className="grid gap-2">
++              <Label htmlFor="meal-date">Date</Label>
++              <Input
++                id="meal-date"
++                type="date"
++                value={calendarDate}
++                onChange={(e) => setCalendarDate(e.target.value)}
++              />
++            </div>
++
++            <div className="grid gap-2">
++              <Label htmlFor="meal-time">Time</Label>
++              <Input
++                id="meal-time"
++                type="time"
++                value={calendarTime}
++                onChange={(e) => setCalendarTime(e.target.value)}
++              />
++            </div>
++
++            <div className="grid gap-2">
++              <Label htmlFor="meal-duration">Duration (minutes)</Label>
++              <Input
++                id="meal-duration"
++                type="number"
++                min="15"
++                step="15"
++                value={calendarDuration}
++                onChange={(e) => setCalendarDuration(parseInt(e.target.value))}
++              />
++            </div>
++          </div>
++
++          <DialogFooter className="flex justify-between sm:justify-between">
++            <Button
++              type="button"
++              variant="outline"
++              onClick={() => generateCalendarEvent('ical')}
++            >
++              <Download className="h-4 w-4 mr-2" />
++              Download iCal
++            </Button>
++            <Button
++              type="button"
++              onClick={() => generateCalendarEvent('google')}
++            >
++              <Calendar className="h-4 w-4 mr-2" />
++              Add to Google Calendar
++            </Button>
++          </DialogFooter>
++        </DialogContent>
++      </Dialog>
++
++      <Card>
++        <CardHeader>
++          <div className="flex justify-between items-start">
++            <div>
++              <CardTitle>Your AI Meal Plan</CardTitle>
++              <CardDescription>
++                For {targetUser === 'mother' ? 'Mother' : 'Child'} • {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
++              </CardDescription>
++            </div>
++            <Button
++              variant="outline"
++              size="sm"
++              onClick={onSave}
++            >
++              <Save className="h-4 w-4 mr-2" />
++              Save Plan
++            </Button>
++          </div>
++        </CardHeader>
++        <CardContent>
++          <p className="text-sm text-muted-foreground mb-4">
++            {mealPlan.introduction}
++          </p>
++
++          <div className="space-y-4">
++            {mealPlan.meals.map((meal, index) => (
++              <motion.div
++                key={index}
++                initial={{ opacity: 0, y: 20 }}
++                animate={{ opacity: 1, y: 0 }}
++                transition={{ duration: 0.3, delay: index * 0.1 }}
++              >
++                <Card className="overflow-hidden">
++                  <div
++                    className="flex items-center p-4 cursor-pointer"
++                    onClick={() => toggleMealExpansion(index)}
++                  >
++                    <div className="h-12 w-12 rounded-md overflow-hidden flex items-center justify-center bg-gradient-to-br from-nuumi-pink/10 to-nuumi-pink/30 mr-3">
++                      <div className="text-3xl">{meal.imageEmoji || '🍽️'}</div>
++                    </div>
++                    <div className="flex-1">
++                      <h3 className="font-medium">{meal.name}</h3>
++                      <div className="flex items-center text-xs text-muted-foreground">
++                        <span>{meal.nutrients.calories} kcal</span>
++                        <span className="mx-1">•</span>
++                        <span>{meal.nutrients.protein}g protein</span>
++                      </div>
++                    </div>
++                    {expandedMealIndex === index ? (
++                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
++                    ) : (
++                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
++                    )}
++                  </div>
++
++                  <AnimatePresence>
++                    {expandedMealIndex === index && (
++                      <motion.div
++                        initial={{ height: 0, opacity: 0 }}
++                        animate={{ height: 'auto', opacity: 1 }}
++                        exit={{ height: 0, opacity: 0 }}
++                        transition={{ duration: 0.3 }}
++                      >
++                        <div className="px-4 pb-4 space-y-4">
++                          <div className="flex justify-end mb-2">
++                            <DialogTrigger asChild>
++                              <Button
++                                variant="outline"
++                                size="sm"
++                                onClick={() => handleAddToCalendar(index)}
++                              >
++                                <Calendar className="h-4 w-4 mr-2" />
++                                Add to Calendar
++                              </Button>
++                            </DialogTrigger>
++                          </div>
++
++                          <div>
++                            <h4 className="text-sm font-medium mb-2">Ingredients</h4>
++                            <ul className="text-sm space-y-1">
++                              {meal.ingredients.map((ingredient, i) => (
++                                <li key={i} className="flex items-start">
++                                  <span className="mr-2">•</span>
++                                  <span>{ingredient}</span>
++                                </li>
++                              ))}
++                            </ul>
++                          </div>
++
++                          <div>
++                            <h4 className="text-sm font-medium mb-2">Instructions</h4>
++                            <ol className="text-sm space-y-2">
++                              {meal.instructions.map((instruction, i) => (
++                                <li key={i} className="flex items-start">
++                                  <span className="font-medium mr-2">{i + 1}.</span>
++                                  <span>{instruction}</span>
++                                </li>
++                              ))}
++                            </ol>
++                          </div>
++
++                          <div>
++                            <h4 className="text-sm font-medium mb-2">Nutrition Information</h4>
++                            <div className="grid grid-cols-4 gap-2 text-sm">
++                              <div className="flex flex-col items-center p-2 bg-muted rounded-md">
++                                <span className="text-xs text-muted-foreground">Calories</span>
++                                <span className="font-medium">{meal.nutrients.calories}</span>
++                              </div>
++                              <div className="flex flex-col items-center p-2 bg-muted rounded-md">
++                                <span className="text-xs text-muted-foreground">Protein</span>
++                                <span className="font-medium">{meal.nutrients.protein}g</span>
++                              </div>
++                              <div className="flex flex-col items-center p-2 bg-muted rounded-md">
++                                <span className="text-xs text-muted-foreground">Carbs</span>
++                                <span className="font-medium">{meal.nutrients.carbs}g</span>
++                              </div>
++                              <div className="flex flex-col items-center p-2 bg-muted rounded-md">
++                                <span className="text-xs text-muted-foreground">Fat</span>
++                                <span className="font-medium">{meal.nutrients.fat}g</span>
++                              </div>
++                            </div>
++                          </div>
++
++                          <div>
++                            <h4 className="text-sm font-medium mb-2">Benefits</h4>
++                            <p className="text-sm text-muted-foreground">{meal.benefits}</p>
++                          </div>
++                        </div>
++                      </motion.div>
++                    )}
++                  </AnimatePresence>
++                </Card>
++              </motion.div>
++            ))}
++          </div>
++        </CardContent>
++      </Card>
++
++      {mealPlan.tips && mealPlan.tips.length > 0 && (
++        <Card>
++          <CardHeader>
++            <CardTitle className="text-lg">Preparation Tips</CardTitle>
++          </CardHeader>
++          <CardContent>
++            <ul className="space-y-2">
++              {mealPlan.tips.map((tip, index) => (
++                <li key={index} className="flex items-start text-sm">
++                  <span className="mr-2">•</span>
++                  <span>{tip}</span>
++                </li>
++              ))}
++            </ul>
++          </CardContent>
++        </Card>
++      )}
++    </div>
++  );
++};
++
++export default AIMealPlanView;
+diff --git a/src/components/meals/AIMealPlanner.tsx b/src/components/meals/AIMealPlanner.tsx
+new file mode 100644
+index 00000000..86c2251f
+--- /dev/null
++++ b/src/components/meals/AIMealPlanner.tsx
+@@ -0,0 +1,511 @@
++import React, { useState, useEffect } from 'react';
++import { useNavigate } from 'react-router-dom';
++import { Loader2, ChevronLeft, Calendar, Filter, Search, Baby, User } from 'lucide-react';
++import { motion, AnimatePresence } from 'framer-motion';
++import { toast } from 'sonner';
++import { supabase } from '@/integrations/supabase/client';
++import { Button } from '@/components/ui/button';
++import { Input } from '@/components/ui/input';
++import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
++import { Slider } from '@/components/ui/slider';
++import { Label } from '@/components/ui/label';
++import { Switch } from '@/components/ui/switch';
++import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
++import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
++import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
++import Header from '@/components/layout/Header';
++import { useTheme } from '@/components/theme/ThemeProvider';
++import AIMealCard from './AIMealCard';
++import SimpleMealPlanView from './SimpleMealPlanView';
++import SavedMealPlans from './SavedMealPlans';
++
++// Import the AI meal service
++import { generateAIMealPlan, saveMealPlan } from '@/services/mealPlanning/aiMealService';
++
++interface AIMealPlannerProps {
++  // Add any props here
++}
++
++const AIMealPlanner: React.FC<AIMealPlannerProps> = () => {
++  const navigate = useNavigate();
++  const { theme } = useTheme();
++  const [isLoading, setIsLoading] = useState(false);
++  const [currentUser, setCurrentUser] = useState<any>(null);
++  const [activeTab, setActiveTab] = useState('preferences');
++
++  // User preferences
++  const [targetUser, setTargetUser] = useState<'mother' | 'child'>('mother');
++  const [childAge, setChildAge] = useState(12); // in months
++  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
++  const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
++  const [preferTraditional, setPreferTraditional] = useState(true);
++  const [nutritionFocus, setNutritionFocus] = useState<string>('balanced');
++
++  // Generated meal plan
++  const [mealPlan, setMealPlan] = useState<any>(null);
++  const [recommendations, setRecommendations] = useState<any[]>([]);
++
++  // Fetch current user
++  useEffect(() => {
++    const fetchCurrentUser = async () => {
++      const { data: { session } } = await supabase.auth.getSession();
++      if (session) {
++        const { data: userData, error } = await supabase
++          .from('profiles')
++          .select('*')
++          .eq('id', session.user.id)
++          .single();
++
++        if (error) {
++          console.error('Error fetching user data:', error);
++          return;
++        }
++
++        setCurrentUser({
++          id: session.user.id,
++          ...userData
++        });
++      }
++    };
++
++    fetchCurrentUser();
++  }, []);
++
++  // Handle generating meal plan
++  const handleGenerateMealPlan = async () => {
++    try {
++      setIsLoading(true);
++
++      // Prepare preferences object
++      const preferences = {
++        targetUser,
++        childAge,
++        mealType,
++        dietaryRestrictions,
++        nutritionGoals: {
++          focus: nutritionFocus
++        },
++        preferTraditional
++      };
++
++      console.log('Sending meal plan request with preferences:', preferences);
++
++      // Generate meal plan using Supabase Edge Function
++      const generatedMealPlan = await generateAIMealPlan(preferences);
++
++      console.log('Received meal plan:', generatedMealPlan);
++
++      // Validate the meal plan structure
++      if (!generatedMealPlan || !generatedMealPlan.meals || !Array.isArray(generatedMealPlan.meals)) {
++        console.error('Invalid meal plan structure:', generatedMealPlan);
++        toast.error('Received invalid meal plan data. Please try again.');
++        return;
++      }
++
++      // Set meal plan
++      setMealPlan(generatedMealPlan);
++
++      // Switch to results tab
++      setActiveTab('results');
++
++      toast.success('Meal plan generated successfully!');
++    } catch (error) {
++      console.error('Error generating meal plan:', error);
++      toast.error('Failed to generate meal plan. Please try again.');
++    } finally {
++      setIsLoading(false);
++    }
++  };
++
++  // Handle getting recommendations
++  const handleGetRecommendations = async () => {
++    try {
++      setIsLoading(true);
++
++      // Prepare preferences object (same as for meal plan)
++      const preferences = {
++        targetUser,
++        childAge,
++        mealType,
++        dietaryRestrictions,
++        nutritionGoals: {
++          focus: nutritionFocus
++        },
++        preferTraditional,
++        requestType: 'recommendations' // Indicate we want recommendations
++      };
++
++      // Generate meal plan using Supabase Edge Function
++      // We'll use the same function but with a different request type
++      const generatedMealPlan = await generateAIMealPlan(preferences);
++
++      // Extract recommendations from the meal plan
++      // In a real implementation, we'd have a separate endpoint for recommendations
++      const mealRecommendations = generatedMealPlan.meals.map(meal => ({
++        name: meal.name,
++        description: meal.benefits,
++        nutritionalBenefits: `Calories: ${meal.nutrients.calories}, Protein: ${meal.nutrients.protein}g, Carbs: ${meal.nutrients.carbs}g, Fat: ${meal.nutrients.fat}g`,
++        suitabilityReason: `Perfect for ${targetUser === 'mother' ? 'mothers' : 'children'} as a ${mealType}.`,
++        imageEmoji: meal.imageEmoji
++      }));
++
++      // Set recommendations
++      setRecommendations(mealRecommendations);
++
++      // Switch to recommendations tab
++      setActiveTab('recommendations');
++
++      toast.success('Meal recommendations generated successfully!');
++    } catch (error) {
++      console.error('Error getting meal recommendations:', error);
++      toast.error('Failed to get meal recommendations. Please try again.');
++    } finally {
++      setIsLoading(false);
++    }
++  };
++
++  // Handle saving meal plan
++  const handleSaveMealPlan = async () => {
++    try {
++      if (!currentUser || !mealPlan) return;
++
++      // Save meal plan using the service
++      await saveMealPlan(mealPlan, {
++        userId: currentUser.id,
++        targetUser,
++        mealType
++      });
++
++      toast.success('Meal plan saved successfully!');
++
++      // Switch to saved plans tab
++      setActiveTab('saved');
++    } catch (error) {
++      console.error('Error saving meal plan:', error);
++      toast.error('Failed to save meal plan. Please try again.');
++    }
++  };
++
++  // Handle adding meal plan to calendar
++  const handleAddToCalendar = async (mealPlan: any, date: Date) => {
++    try {
++      if (!currentUser) {
++        toast.error('Please sign in to add a meal plan to calendar');
++        return;
++      }
++
++      // Extract the meal type from the meal plan
++      const mealType = mealPlan.meal_type;
++
++      // Format the date for Supabase
++      const dateString = date.toISOString().split('T')[0];
++
++      // For each meal in the plan, add it to the calendar
++      if (mealPlan.plan_data && mealPlan.plan_data.meals && mealPlan.plan_data.meals.length > 0) {
++        // Create a meal entry for each meal in the plan
++        for (const meal of mealPlan.plan_data.meals) {
++          // Create a meal entry
++          const { data: mealData, error: mealError } = await supabase
++            .from('meals')
++            .insert({
++              name: meal.name,
++              description: meal.benefits || 'AI-generated meal',
++              emoji: meal.imageEmoji || '🍽️',
++              calories: meal.nutrients.calories || 0,
++              protein: meal.nutrients.protein || 0,
++              carbs: meal.nutrients.carbs || 0,
++              fat: meal.nutrients.fat || 0,
++              prep_time: 30, // Default prep time
++              tags: ['ai-generated'],
++              ingredients: meal.ingredients || [],
++              instructions: meal.instructions || [],
++              user_id: currentUser.id
++            })
++            .select()
++            .single();
++
++          if (mealError) {
++            console.error('Error creating meal:', mealError);
++            continue;
++          }
++
++          // Check if meal plan already exists for this date and meal type
++          const { data: existingPlan, error: checkError } = await supabase
++            .from('meal_plans')
++            .select('id')
++            .eq('user_id', currentUser.id)
++            .eq('date', dateString)
++            .eq('meal_type', mealType)
++            .maybeSingle();
++
++          if (checkError) {
++            console.error('Error checking existing plan:', checkError);
++            continue;
++          }
++
++          if (existingPlan) {
++            // Update existing plan
++            const { error: updateError } = await supabase
++              .from('meal_plans')
++              .update({ meal_id: mealData.id })
++              .eq('id', existingPlan.id);
++
++            if (updateError) {
++              console.error('Error updating meal plan:', updateError);
++              continue;
++            }
++          } else {
++            // Create new plan
++            const { error: insertError } = await supabase
++              .from('meal_plans')
++              .insert({
++                user_id: currentUser.id,
++                meal_id: mealData.id,
++                date: dateString,
++                meal_type: mealType
++              });
++
++            if (insertError) {
++              console.error('Error inserting meal plan:', insertError);
++              continue;
++            }
++          }
++        }
++
++        toast.success(`Added meal plan to calendar for ${dateString}`);
++
++        // Navigate to the meal planning page to see the calendar
++        navigate('/meal-planning');
++      }
++    } catch (error) {
++      console.error('Error adding to calendar:', error);
++      toast.error('Failed to add meal plan to calendar');
++    }
++  };
++
++  if (isLoading && !mealPlan && recommendations.length === 0) {
++    return (
++      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
++        <Loader2 className="h-12 w-12 animate-spin text-nuumi-pink mb-4" />
++        <p className="text-center text-muted-foreground">
++          Our AI is creating your personalized meal plan...
++        </p>
++      </div>
++    );
++  }
++
++  return (
++    <div className="min-h-screen bg-background pb-20">
++      <Header
++        title="AI Meal Planner"
++        showBackButton={true}
++        onBackClick={() => navigate(-1)}
++      />
++
++      <div className="max-w-md mx-auto px-4">
++        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
++          <TabsList className="grid w-full grid-cols-4 mb-6">
++            <TabsTrigger value="preferences">Preferences</TabsTrigger>
++            <TabsTrigger value="results">Meal Plan</TabsTrigger>
++            <TabsTrigger value="recommendations">Suggestions</TabsTrigger>
++            <TabsTrigger value="saved">My Plans</TabsTrigger>
++          </TabsList>
++
++          <TabsContent value="preferences" className="space-y-6">
++            <Card>
++              <CardHeader>
++                <CardTitle>Who is this meal for?</CardTitle>
++                <CardDescription>Select who you're planning meals for</CardDescription>
++              </CardHeader>
++              <CardContent>
++                <RadioGroup
++                  value={targetUser}
++                  onValueChange={(value) => setTargetUser(value as 'mother' | 'child')}
++                  className="flex space-x-4"
++                >
++                  <div className="flex items-center space-x-2">
++                    <RadioGroupItem value="mother" id="mother" />
++                    <Label htmlFor="mother" className="flex items-center">
++                      <User className="h-4 w-4 mr-2" />
++                      Mother
++                    </Label>
++                  </div>
++                  <div className="flex items-center space-x-2">
++                    <RadioGroupItem value="child" id="child" />
++                    <Label htmlFor="child" className="flex items-center">
++                      <Baby className="h-4 w-4 mr-2" />
++                      Child
++                    </Label>
++                  </div>
++                </RadioGroup>
++
++                {targetUser === 'child' && (
++                  <div className="mt-4 space-y-2">
++                    <div className="flex justify-between">
++                      <Label htmlFor="child-age">Child's Age (months)</Label>
++                      <span className="text-sm text-muted-foreground">{childAge} months</span>
++                    </div>
++                    <Slider
++                      id="child-age"
++                      min={6}
++                      max={36}
++                      step={1}
++                      value={[childAge]}
++                      onValueChange={(value) => setChildAge(value[0])}
++                    />
++                    <div className="flex justify-between text-xs text-muted-foreground">
++                      <span>6 months</span>
++                      <span>36 months</span>
++                    </div>
++                  </div>
++                )}
++              </CardContent>
++            </Card>
++
++            <Card>
++              <CardHeader>
++                <CardTitle>Meal Type</CardTitle>
++                <CardDescription>Select the type of meal you want to plan</CardDescription>
++              </CardHeader>
++              <CardContent>
++                <Select value={mealType} onValueChange={(value) => setMealType(value as any)}>
++                  <SelectTrigger>
++                    <SelectValue placeholder="Select meal type" />
++                  </SelectTrigger>
++                  <SelectContent>
++                    <SelectItem value="breakfast">Breakfast</SelectItem>
++                    <SelectItem value="lunch">Lunch</SelectItem>
++                    <SelectItem value="dinner">Dinner</SelectItem>
++                    <SelectItem value="snack">Snack</SelectItem>
++                  </SelectContent>
++                </Select>
++              </CardContent>
++            </Card>
++
++            <Card>
++              <CardHeader>
++                <CardTitle>Nutrition Focus</CardTitle>
++                <CardDescription>Select your nutritional priorities</CardDescription>
++              </CardHeader>
++              <CardContent>
++                <Select value={nutritionFocus} onValueChange={setNutritionFocus}>
++                  <SelectTrigger>
++                    <SelectValue placeholder="Select nutrition focus" />
++                  </SelectTrigger>
++                  <SelectContent>
++                    <SelectItem value="balanced">Balanced</SelectItem>
++                    <SelectItem value="protein">High Protein</SelectItem>
++                    <SelectItem value="iron">Iron Rich</SelectItem>
++                    <SelectItem value="calcium">Calcium Rich</SelectItem>
++                    <SelectItem value="energy">Energy Boosting</SelectItem>
++                  </SelectContent>
++                </Select>
++              </CardContent>
++            </Card>
++
++            <Card>
++              <CardHeader>
++                <CardTitle>Additional Preferences</CardTitle>
++              </CardHeader>
++              <CardContent className="space-y-4">
++                <div className="flex items-center justify-between">
++                  <Label htmlFor="traditional">Prefer Traditional Foods</Label>
++                  <Switch
++                    id="traditional"
++                    checked={preferTraditional}
++                    onCheckedChange={setPreferTraditional}
++                  />
++                </div>
++              </CardContent>
++            </Card>
++
++            <div className="flex space-x-4">
++              <Button
++                className="flex-1 bg-nuumi-pink hover:bg-nuumi-pink/90 text-white"
++                onClick={handleGenerateMealPlan}
++                disabled={isLoading}
++              >
++                {isLoading ? (
++                  <>
++                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
++                    Generating...
++                  </>
++                ) : (
++                  'Generate Meal Plan'
++                )}
++              </Button>
++              <Button
++                variant="outline"
++                className="flex-1"
++                onClick={handleGetRecommendations}
++                disabled={isLoading}
++              >
++                Get Suggestions
++              </Button>
++            </div>
++          </TabsContent>
++
++          <TabsContent value="results">
++            {mealPlan ? (
++              <SimpleMealPlanView
++                mealPlan={mealPlan}
++                onSave={handleSaveMealPlan}
++                targetUser={targetUser}
++                mealType={mealType}
++              />
++            ) : (
++              <div className="text-center py-12">
++                <p className="text-muted-foreground mb-4">No meal plan generated yet.</p>
++                <Button
++                  onClick={() => setActiveTab('preferences')}
++                  variant="outline"
++                >
++                  Set Preferences
++                </Button>
++              </div>
++            )}
++          </TabsContent>
++
++          <TabsContent value="recommendations">
++            {recommendations.length > 0 ? (
++              <div className="space-y-4">
++                <h3 className="text-lg font-medium">Recommended Meals</h3>
++                {recommendations.map((meal, index) => (
++                  <AIMealCard
++                    key={index}
++                    meal={meal}
++                    onSelect={() => {
++                      // Logic to select this recommendation
++                      toast.success(`${meal.name} selected!`);
++                    }}
++                  />
++                ))}
++              </div>
++            ) : (
++              <div className="text-center py-12">
++                <p className="text-muted-foreground mb-4">No recommendations generated yet.</p>
++                <Button
++                  onClick={() => setActiveTab('preferences')}
++                  variant="outline"
++                >
++                  Set Preferences
++                </Button>
++              </div>
++            )}
++          </TabsContent>
++
++          <TabsContent value="saved">
++            <SavedMealPlans
++              onAddToCalendar={(mealPlan, date) => {
++                // Add meal plan to calendar
++                handleAddToCalendar(mealPlan, date);
++              }}
++            />
++          </TabsContent>
++        </Tabs>
++      </div>
++    </div>
++  );
++};
++
++export default AIMealPlanner;
+diff --git a/src/components/meals/MealCard.tsx b/src/components/meals/MealCard.tsx
+new file mode 100644
+index 00000000..893350fc
+--- /dev/null
++++ b/src/components/meals/MealCard.tsx
+@@ -0,0 +1,166 @@
++import React, { useState } from 'react';
++import { MoreVertical, Clock, Plus, ChevronDown } from 'lucide-react';
++import { Button } from '@/components/ui/button';
++import {
++  DropdownMenu,
++  DropdownMenuContent,
++  DropdownMenuItem,
++  DropdownMenuTrigger,
++} from '@/components/ui/dropdown-menu';
++import { cn } from '@/lib/utils';
++import { formatDistanceToNow } from 'date-fns';
++
++interface Meal {
++  id: string;
++  name: string;
++  description: string;
++  image_url?: string;
++  emoji?: string;
++  calories: number;
++  protein: number;
++  carbs: number;
++  fat: number;
++  prep_time: number;
++  tags: string[];
++  ingredients: string[];
++  instructions: string[];
++  user_id: string;
++  created_at?: string;
++}
++
++interface MealCardProps {
++  meal: Meal;
++  onAddToMealPlan: (meal: Meal, mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack') => void;
++  selectedDate: Date;
++}
++
++const MealCard: React.FC<MealCardProps> = ({ meal, onAddToMealPlan, selectedDate }) => {
++  const [isExpanded, setIsExpanded] = useState(false);
++
++  const formatDate = (dateString?: string) => {
++    if (!dateString) return '';
++    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
++  };
++
++  return (
++    <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
++      <div className="relative h-48 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-nuumi-pink/10 to-nuumi-pink/30">
++        <div className="text-8xl">{meal.emoji || '🍽️'}</div>
++      </div>
++
++      <div className="p-4">
++        <div className="flex justify-between items-start mb-2">
++          <h3 className="text-lg font-semibold">{meal.name}</h3>
++          <div className="flex items-center">
++            <DropdownMenu>
++              <DropdownMenuTrigger asChild>
++                <Button variant="ghost" size="icon" className="h-8 w-8">
++                  <MoreVertical className="h-4 w-4" />
++                </Button>
++              </DropdownMenuTrigger>
++              <DropdownMenuContent align="end">
++                <DropdownMenuItem onClick={() => onAddToMealPlan(meal, 'breakfast')}>
++                  Add to Breakfast
++                </DropdownMenuItem>
++                <DropdownMenuItem onClick={() => onAddToMealPlan(meal, 'lunch')}>
++                  Add to Lunch
++                </DropdownMenuItem>
++                <DropdownMenuItem onClick={() => onAddToMealPlan(meal, 'dinner')}>
++                  Add to Dinner
++                </DropdownMenuItem>
++                <DropdownMenuItem onClick={() => onAddToMealPlan(meal, 'snack')}>
++                  Add as Snack
++                </DropdownMenuItem>
++              </DropdownMenuContent>
++            </DropdownMenu>
++          </div>
++        </div>
++
++        <p className="text-sm text-muted-foreground mb-3">{meal.description}</p>
++
++        <div className="flex items-center gap-4 mb-3">
++          <div className="flex items-center text-sm text-muted-foreground">
++            <Clock className="h-4 w-4 mr-1" />
++            <span>{meal.prep_time} min</span>
++          </div>
++          <div className="text-sm text-muted-foreground">
++            {meal.calories} kcal
++          </div>
++        </div>
++
++        <div className="flex flex-wrap gap-2 mb-3">
++          {meal.tags.map((tag, index) => (
++            <span
++              key={index}
++              className="px-2 py-1 bg-secondary text-secondary-foreground rounded-full text-xs"
++            >
++              {tag}
++            </span>
++          ))}
++        </div>
++
++        <div className="grid grid-cols-3 gap-2 mb-4">
++          <div className="flex flex-col items-center justify-center p-2 bg-secondary rounded-lg">
++            <span className="text-xs text-muted-foreground">Protein</span>
++            <span className="font-semibold">{meal.protein}g</span>
++          </div>
++          <div className="flex flex-col items-center justify-center p-2 bg-secondary rounded-lg">
++            <span className="text-xs text-muted-foreground">Carbs</span>
++            <span className="font-semibold">{meal.carbs}g</span>
++          </div>
++          <div className="flex flex-col items-center justify-center p-2 bg-secondary rounded-lg">
++            <span className="text-xs text-muted-foreground">Fat</span>
++            <span className="font-semibold">{meal.fat}g</span>
++          </div>
++        </div>
++
++        <Button
++          variant="ghost"
++          className="w-full flex items-center justify-center"
++          onClick={() => setIsExpanded(!isExpanded)}
++        >
++          <span className="mr-2">{isExpanded ? 'Show Less' : 'Show More'}</span>
++          <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
++        </Button>
++
++        {isExpanded && (
++          <div className="mt-4 space-y-4">
++            <div>
++              <h4 className="font-medium mb-2">Ingredients</h4>
++              <ul className="list-disc pl-5 space-y-1">
++                {meal.ingredients.map((ingredient, index) => (
++                  <li key={index} className="text-sm">{ingredient}</li>
++                ))}
++              </ul>
++            </div>
++
++            <div>
++              <h4 className="font-medium mb-2">Instructions</h4>
++              <ol className="list-decimal pl-5 space-y-1">
++                {meal.instructions.map((instruction, index) => (
++                  <li key={index} className="text-sm">{instruction}</li>
++                ))}
++              </ol>
++            </div>
++
++            {meal.created_at && (
++              <p className="text-xs text-muted-foreground">
++                Added {formatDate(meal.created_at)}
++              </p>
++            )}
++          </div>
++        )}
++
++        <Button
++          className="w-full mt-4 bg-nuumi-pink hover:bg-nuumi-pink/90 text-white"
++          onClick={() => onAddToMealPlan(meal, 'lunch')}
++        >
++          <Plus className="mr-2 h-4 w-4" />
++          Add to Today's Plan
++        </Button>
++      </div>
++    </div>
++  );
++};
++
++export default MealCard;
+diff --git a/src/components/meals/MealPlanCalendar.tsx b/src/components/meals/MealPlanCalendar.tsx
+new file mode 100644
+index 00000000..db42ebcb
+--- /dev/null
++++ b/src/components/meals/MealPlanCalendar.tsx
+@@ -0,0 +1,290 @@
++import React, { useState } from 'react';
++import { format, addDays, subDays, isSameDay } from 'date-fns';
++import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
++import { Button } from '@/components/ui/button';
++import { cn } from '@/lib/utils';
++
++interface Meal {
++  id: string;
++  name: string;
++  description: string;
++  image_url?: string;
++  calories: number;
++  protein: number;
++  carbs: number;
++  fat: number;
++  prep_time: number;
++  tags: string[];
++  ingredients: string[];
++  instructions: string[];
++  user_id: string;
++}
++
++interface MealPlan {
++  id: string;
++  date: string;
++  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
++  meal_id: string;
++  user_id: string;
++  meal?: Meal;
++}
++
++interface MealPlanCalendarProps {
++  mealPlans: MealPlan[];
++  selectedDate: Date;
++  onDateChange: (date: Date) => void;
++  onAddMeal: (mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack') => void;
++}
++
++const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
++  mealPlans,
++  selectedDate,
++  onDateChange,
++  onAddMeal,
++}) => {
++  const [weekOffset, setWeekOffset] = useState(0);
++
++  // Generate week days
++  const generateWeekDays = () => {
++    const days = [];
++    const startOfWeek = addDays(new Date(), weekOffset * 7);
++
++    for (let i = 0; i < 7; i++) {
++      const day = addDays(startOfWeek, i);
++      days.push(day);
++    }
++
++    return days;
++  };
++
++  const weekDays = generateWeekDays();
++
++  const handlePreviousWeek = () => {
++    setWeekOffset(weekOffset - 1);
++  };
++
++  const handleNextWeek = () => {
++    setWeekOffset(weekOffset + 1);
++  };
++
++  const handleDayClick = (day: Date) => {
++    onDateChange(day);
++  };
++
++  // Filter meal plans for selected date
++  const getPlansForDate = (date: Date) => {
++    const dateString = format(date, 'yyyy-MM-dd');
++    return mealPlans.filter(plan => plan.date === dateString);
++  };
++
++  const selectedDatePlans = getPlansForDate(selectedDate);
++
++  // Get meal plan by type
++  const getMealByType = (type: 'breakfast' | 'lunch' | 'dinner' | 'snack') => {
++    return selectedDatePlans.find(plan => plan.meal_type === type);
++  };
++
++  const breakfastPlan = getMealByType('breakfast');
++  const lunchPlan = getMealByType('lunch');
++  const dinnerPlan = getMealByType('dinner');
++  const snackPlan = getMealByType('snack');
++
++  return (
++    <div className="space-y-6">
++      {/* Calendar navigation */}
++      <div className="flex items-center justify-between mb-4">
++        <Button variant="outline" size="icon" onClick={handlePreviousWeek}>
++          <ChevronLeft className="h-4 w-4" />
++        </Button>
++        <h3 className="text-sm font-medium">
++          {format(weekDays[0], 'MMM d')} - {format(weekDays[6], 'MMM d, yyyy')}
++        </h3>
++        <Button variant="outline" size="icon" onClick={handleNextWeek}>
++          <ChevronRight className="h-4 w-4" />
++        </Button>
++      </div>
++
++      {/* Week days */}
++      <div className="grid grid-cols-7 gap-1 mb-6">
++        {weekDays.map((day, index) => (
++          <Button
++            key={index}
++            variant="ghost"
++            className={cn(
++              "flex flex-col items-center p-2 h-auto",
++              isSameDay(day, selectedDate) && "bg-nuumi-pink/10 text-nuumi-pink"
++            )}
++            onClick={() => handleDayClick(day)}
++          >
++            <span className="text-xs">{format(day, 'EEE')}</span>
++            <span className={cn(
++              "text-lg font-semibold",
++              isSameDay(day, selectedDate) && "text-nuumi-pink"
++            )}>
++              {format(day, 'd')}
++            </span>
++          </Button>
++        ))}
++      </div>
++
++      {/* Selected date */}
++      <div className="mb-4">
++        <h2 className="text-xl font-semibold mb-1">
++          {format(selectedDate, 'EEEE, MMMM d, yyyy')}
++        </h2>
++        <p className="text-sm text-muted-foreground">
++          Your meal plan for today
++        </p>
++      </div>
++
++      {/* Meal plan for selected date */}
++      <div className="space-y-4">
++        {/* Breakfast */}
++        <div className="rounded-lg border bg-card p-4">
++          <div className="flex justify-between items-center mb-3">
++            <h3 className="font-medium">Breakfast</h3>
++            <Button
++              variant="ghost"
++              size="sm"
++              className="h-8 px-2 text-xs"
++              onClick={() => onAddMeal('breakfast')}
++            >
++              <Plus className="h-3 w-3 mr-1" />
++              Add
++            </Button>
++          </div>
++
++          {breakfastPlan ? (
++            <div className="flex items-center gap-3">
++              <div className="h-16 w-16 rounded-md overflow-hidden flex items-center justify-center bg-gradient-to-br from-nuumi-pink/10 to-nuumi-pink/30">
++                <div className="text-4xl">{breakfastPlan.meal?.emoji || '🍽️'}</div>
++              </div>
++              <div className="flex-1">
++                <h4 className="font-medium">{breakfastPlan.meal?.name}</h4>
++                <div className="flex items-center gap-2 text-xs text-muted-foreground">
++                  <span>{breakfastPlan.meal?.calories} kcal</span>
++                  <span>•</span>
++                  <span>{breakfastPlan.meal?.prep_time} min</span>
++                </div>
++              </div>
++            </div>
++          ) : (
++            <div className="flex items-center justify-center h-16 bg-muted/50 rounded-md">
++              <p className="text-sm text-muted-foreground">No breakfast planned</p>
++            </div>
++          )}
++        </div>
++
++        {/* Lunch */}
++        <div className="rounded-lg border bg-card p-4">
++          <div className="flex justify-between items-center mb-3">
++            <h3 className="font-medium">Lunch</h3>
++            <Button
++              variant="ghost"
++              size="sm"
++              className="h-8 px-2 text-xs"
++              onClick={() => onAddMeal('lunch')}
++            >
++              <Plus className="h-3 w-3 mr-1" />
++              Add
++            </Button>
++          </div>
++
++          {lunchPlan ? (
++            <div className="flex items-center gap-3">
++              <div className="h-16 w-16 rounded-md overflow-hidden flex items-center justify-center bg-gradient-to-br from-nuumi-pink/10 to-nuumi-pink/30">
++                <div className="text-4xl">{lunchPlan.meal?.emoji || '🍽️'}</div>
++              </div>
++              <div className="flex-1">
++                <h4 className="font-medium">{lunchPlan.meal?.name}</h4>
++                <div className="flex items-center gap-2 text-xs text-muted-foreground">
++                  <span>{lunchPlan.meal?.calories} kcal</span>
++                  <span>•</span>
++                  <span>{lunchPlan.meal?.prep_time} min</span>
++                </div>
++              </div>
++            </div>
++          ) : (
++            <div className="flex items-center justify-center h-16 bg-muted/50 rounded-md">
++              <p className="text-sm text-muted-foreground">No lunch planned</p>
++            </div>
++          )}
++        </div>
++
++        {/* Dinner */}
++        <div className="rounded-lg border bg-card p-4">
++          <div className="flex justify-between items-center mb-3">
++            <h3 className="font-medium">Dinner</h3>
++            <Button
++              variant="ghost"
++              size="sm"
++              className="h-8 px-2 text-xs"
++              onClick={() => onAddMeal('dinner')}
++            >
++              <Plus className="h-3 w-3 mr-1" />
++              Add
++            </Button>
++          </div>
++
++          {dinnerPlan ? (
++            <div className="flex items-center gap-3">
++              <div className="h-16 w-16 rounded-md overflow-hidden flex items-center justify-center bg-gradient-to-br from-nuumi-pink/10 to-nuumi-pink/30">
++                <div className="text-4xl">{dinnerPlan.meal?.emoji || '🍽️'}</div>
++              </div>
++              <div className="flex-1">
++                <h4 className="font-medium">{dinnerPlan.meal?.name}</h4>
++                <div className="flex items-center gap-2 text-xs text-muted-foreground">
++                  <span>{dinnerPlan.meal?.calories} kcal</span>
++                  <span>•</span>
++                  <span>{dinnerPlan.meal?.prep_time} min</span>
++                </div>
++              </div>
++            </div>
++          ) : (
++            <div className="flex items-center justify-center h-16 bg-muted/50 rounded-md">
++              <p className="text-sm text-muted-foreground">No dinner planned</p>
++            </div>
++          )}
++        </div>
++
++        {/* Snack */}
++        <div className="rounded-lg border bg-card p-4">
++          <div className="flex justify-between items-center mb-3">
++            <h3 className="font-medium">Snack</h3>
++            <Button
++              variant="ghost"
++              size="sm"
++              className="h-8 px-2 text-xs"
++              onClick={() => onAddMeal('snack')}
++            >
++              <Plus className="h-3 w-3 mr-1" />
++              Add
++            </Button>
++          </div>
++
++          {snackPlan ? (
++            <div className="flex items-center gap-3">
++              <div className="h-16 w-16 rounded-md overflow-hidden flex items-center justify-center bg-gradient-to-br from-nuumi-pink/10 to-nuumi-pink/30">
++                <div className="text-4xl">{snackPlan.meal?.emoji || '🍽️'}</div>
++              </div>
++              <div className="flex-1">
++                <h4 className="font-medium">{snackPlan.meal?.name}</h4>
++                <div className="flex items-center gap-2 text-xs text-muted-foreground">
++                  <span>{snackPlan.meal?.calories} kcal</span>
++                  <span>•</span>
++                  <span>{snackPlan.meal?.prep_time} min</span>
++                </div>
++              </div>
++            </div>
++          ) : (
++            <div className="flex items-center justify-center h-16 bg-muted/50 rounded-md">
++              <p className="text-sm text-muted-foreground">No snack planned</p>
++            </div>
++          )}
++        </div>
++      </div>
++    </div>
++  );
++};
++
++export default MealPlanCalendar;
+diff --git a/src/components/meals/SavedMealPlans.tsx b/src/components/meals/SavedMealPlans.tsx
+new file mode 100644
+index 00000000..a199f3f5
+--- /dev/null
++++ b/src/components/meals/SavedMealPlans.tsx
+@@ -0,0 +1,320 @@
++import React, { useState, useEffect } from 'react';
++import { format } from 'date-fns';
++import { Loader2, Calendar, Trash2, Clock, Info } from 'lucide-react';
++import { motion, AnimatePresence } from 'framer-motion';
++import { toast } from 'sonner';
++import { supabase } from '@/integrations/supabase/client';
++import { Button } from '@/components/ui/button';
++import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
++import { Badge } from '@/components/ui/badge';
++import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
++import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
++import { Input } from '@/components/ui/input';
++import { Label } from '@/components/ui/label';
++import { getUserMealPlans, deleteMealPlan } from '@/services/mealPlanning/aiMealService';
++import { generateGoogleCalendarUrl, downloadICalFile, formatMealDescription } from '@/utils/calendarUtils';
++
++interface SavedMealPlansProps {
++  onAddToCalendar?: (mealPlan: any, date: Date) => void;
++}
++
++const SavedMealPlans: React.FC<SavedMealPlansProps> = ({ onAddToCalendar }) => {
++  const [isLoading, setIsLoading] = useState(true);
++  const [mealPlans, setMealPlans] = useState<any[]>([]);
++  const [currentUser, setCurrentUser] = useState<any>(null);
++  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
++  const [selectedMealIndex, setSelectedMealIndex] = useState<number>(0);
++  const [calendarDate, setCalendarDate] = useState<string>(
++    new Date().toISOString().split('T')[0]
++  );
++  const [calendarTime, setCalendarTime] = useState<string>('12:00');
++  const [calendarDuration, setCalendarDuration] = useState<number>(60); // minutes
++
++  // Fetch current user
++  useEffect(() => {
++    const fetchCurrentUser = async () => {
++      const { data: { session } } = await supabase.auth.getSession();
++      if (session) {
++        setCurrentUser(session.user);
++      }
++    };
++
++    fetchCurrentUser();
++  }, []);
++
++  // Fetch saved meal plans
++  useEffect(() => {
++    const fetchMealPlans = async () => {
++      if (!currentUser) return;
++
++      setIsLoading(true);
++      try {
++        const plans = await getUserMealPlans(currentUser.id);
++        setMealPlans(plans);
++      } catch (error) {
++        console.error('Error fetching meal plans:', error);
++        toast.error('Failed to load saved meal plans');
++      } finally {
++        setIsLoading(false);
++      }
++    };
++
++    if (currentUser) {
++      fetchMealPlans();
++    }
++  }, [currentUser]);
++
++  // Handle delete meal plan
++  const handleDeleteMealPlan = async (planId: string) => {
++    try {
++      await deleteMealPlan(planId);
++      setMealPlans(mealPlans.filter(plan => plan.id !== planId));
++      toast.success('Meal plan deleted successfully');
++    } catch (error) {
++      console.error('Error deleting meal plan:', error);
++      toast.error('Failed to delete meal plan');
++    }
++  };
++
++  // Handle adding to calendar
++  const handleAddToCalendar = (planId: string, mealIndex: number) => {
++    setSelectedPlanId(planId);
++    setSelectedMealIndex(mealIndex);
++  };
++
++  // Generate calendar event
++  const generateCalendarEvent = (type: 'google' | 'ical') => {
++    try {
++      const plan = mealPlans.find(p => p.id === selectedPlanId);
++      if (!plan || !plan.plan_data || !plan.plan_data.meals || !plan.plan_data.meals[selectedMealIndex]) {
++        toast.error('Invalid meal plan data');
++        return;
++      }
++
++      const meal = plan.plan_data.meals[selectedMealIndex];
++      const title = `${plan.meal_type.charAt(0).toUpperCase() + plan.meal_type.slice(1)}: ${meal.name}`;
++      const description = formatMealDescription(meal);
++
++      // Parse date and time
++      const [year, month, day] = calendarDate.split('-').map(Number);
++      const [hours, minutes] = calendarTime.split(':').map(Number);
++
++      const startDate = new Date(year, month - 1, day, hours, minutes);
++      const endDate = new Date(startDate.getTime() + calendarDuration * 60 * 1000);
++
++      if (type === 'google') {
++        // Open Google Calendar in a new tab
++        window.open(
++          generateGoogleCalendarUrl({
++            title,
++            description,
++            startDate,
++            endDate
++          }),
++          '_blank'
++        );
++      } else {
++        // Download iCal file
++        downloadICalFile({
++          title,
++          description,
++          startDate,
++          endDate
++        });
++      }
++
++      // Also add to the app's calendar if the callback is provided
++      if (onAddToCalendar) {
++        onAddToCalendar(plan, startDate);
++      }
++
++      toast.success('Added to calendar');
++    } catch (error) {
++      console.error('Error generating calendar event:', error);
++      toast.error('Failed to add to calendar');
++    }
++  };
++
++  if (isLoading) {
++    return (
++      <div className="flex items-center justify-center py-12">
++        <Loader2 className="h-8 w-8 animate-spin text-nuumi-pink" />
++      </div>
++    );
++  }
++
++  if (!currentUser) {
++    return (
++      <div className="text-center py-12">
++        <p className="text-muted-foreground mb-4">Please sign in to view your saved meal plans.</p>
++      </div>
++    );
++  }
++
++  if (mealPlans.length === 0) {
++    return (
++      <div className="text-center py-12">
++        <p className="text-muted-foreground mb-4">You don't have any saved meal plans yet.</p>
++        <Button variant="outline" onClick={() => window.location.href = '#ai'}>
++          Create a Meal Plan
++        </Button>
++      </div>
++    );
++  }
++
++  return (
++    <div className="space-y-6">
++      {/* Calendar Dialog */}
++      <Dialog>
++        <DialogContent className="sm:max-w-md">
++          <DialogHeader>
++            <DialogTitle>Add to Calendar</DialogTitle>
++            <DialogDescription>
++              Schedule this meal in your calendar
++            </DialogDescription>
++          </DialogHeader>
++          
++          <div className="grid gap-4 py-4">
++            <div className="grid gap-2">
++              <Label htmlFor="meal-date">Date</Label>
++              <Input
++                id="meal-date"
++                type="date"
++                value={calendarDate}
++                onChange={(e) => setCalendarDate(e.target.value)}
++              />
++            </div>
++            
++            <div className="grid gap-2">
++              <Label htmlFor="meal-time">Time</Label>
++              <Input
++                id="meal-time"
++                type="time"
++                value={calendarTime}
++                onChange={(e) => setCalendarTime(e.target.value)}
++              />
++            </div>
++            
++            <div className="grid gap-2">
++              <Label htmlFor="meal-duration">Duration (minutes)</Label>
++              <Input
++                id="meal-duration"
++                type="number"
++                min="15"
++                step="15"
++                value={calendarDuration}
++                onChange={(e) => setCalendarDuration(parseInt(e.target.value))}
++              />
++            </div>
++          </div>
++          
++          <DialogFooter className="flex justify-between sm:justify-between">
++            <Button
++              type="button"
++              variant="outline"
++              onClick={() => generateCalendarEvent('ical')}
++            >
++              <Calendar className="h-4 w-4 mr-2" />
++              Download iCal
++            </Button>
++            <Button
++              type="button"
++              onClick={() => generateCalendarEvent('google')}
++            >
++              <Calendar className="h-4 w-4 mr-2" />
++              Add to Google Calendar
++            </Button>
++          </DialogFooter>
++        </DialogContent>
++      </Dialog>
++
++      <h2 className="text-xl font-semibold">Your Saved Meal Plans</h2>
++      
++      {mealPlans.map((plan) => (
++        <Card key={plan.id} className="overflow-hidden">
++          <CardHeader className="pb-2">
++            <div className="flex justify-between items-start">
++              <div>
++                <CardTitle className="text-base">
++                  {plan.target_user === 'mother' ? 'Mother' : 'Child'} {plan.meal_type.charAt(0).toUpperCase() + plan.meal_type.slice(1)}
++                </CardTitle>
++                <CardDescription>
++                  {format(new Date(plan.created_at), 'MMMM d, yyyy')}
++                </CardDescription>
++              </div>
++              <Button
++                variant="ghost"
++                size="sm"
++                className="text-destructive"
++                onClick={() => handleDeleteMealPlan(plan.id)}
++              >
++                <Trash2 className="h-4 w-4" />
++              </Button>
++            </div>
++          </CardHeader>
++          
++          <CardContent>
++            {plan.plan_data && plan.plan_data.meals && (
++              <div className="space-y-4">
++                <p className="text-sm">{plan.plan_data.introduction}</p>
++                
++                <Accordion type="single" collapsible className="w-full">
++                  {plan.plan_data.meals.map((meal, index) => (
++                    <AccordionItem key={index} value={`meal-${index}`}>
++                      <AccordionTrigger className="py-2">
++                        <div className="flex items-center">
++                          <span className="mr-2 text-xl">{meal.imageEmoji || '🍽️'}</span>
++                          <span>{meal.name}</span>
++                        </div>
++                      </AccordionTrigger>
++                      <AccordionContent>
++                        <div className="space-y-4 pt-2">
++                          <div className="flex justify-end">
++                            <DialogTrigger asChild>
++                              <Button 
++                                variant="outline" 
++                                size="sm"
++                                onClick={() => handleAddToCalendar(plan.id, index)}
++                              >
++                                <Calendar className="h-4 w-4 mr-2" />
++                                Add to Calendar
++                              </Button>
++                            </DialogTrigger>
++                          </div>
++                          
++                          <div>
++                            <h4 className="text-sm font-medium mb-2">Ingredients</h4>
++                            <ul className="text-sm space-y-1">
++                              {meal.ingredients.map((ingredient, i) => (
++                                <li key={i} className="flex items-start">
++                                  <span className="mr-2">•</span>
++                                  <span>{ingredient}</span>
++                                </li>
++                              ))}
++                            </ul>
++                          </div>
++                          
++                          <div>
++                            <h4 className="text-sm font-medium mb-2">Nutrition Information</h4>
++                            <div className="flex flex-wrap gap-2">
++                              <Badge variant="outline">Calories: {meal.nutrients.calories}</Badge>
++                              <Badge variant="outline">Protein: {meal.nutrients.protein}g</Badge>
++                              <Badge variant="outline">Carbs: {meal.nutrients.carbs}g</Badge>
++                              <Badge variant="outline">Fat: {meal.nutrients.fat}g</Badge>
++                            </div>
++                          </div>
++                        </div>
++                      </AccordionContent>
++                    </AccordionItem>
++                  ))}
++                </Accordion>
++              </div>
++            )}
++          </CardContent>
++        </Card>
++      ))}
++    </div>
++  );
++};
++
++export default SavedMealPlans;
+diff --git a/src/components/meals/SimpleMealPlanView.tsx b/src/components/meals/SimpleMealPlanView.tsx
+new file mode 100644
+index 00000000..dbb63ebe
+--- /dev/null
++++ b/src/components/meals/SimpleMealPlanView.tsx
+@@ -0,0 +1,168 @@
++import React from 'react';
++import { Save } from 'lucide-react';
++import { Button } from '@/components/ui/button';
++import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
++import { Badge } from '@/components/ui/badge';
++
++interface MealPlan {
++  introduction: string;
++  meals: Array<{
++    name: string;
++    ingredients: string[];
++    instructions: string[];
++    nutrients: {
++      calories: number;
++      protein: number;
++      carbs: number;
++      fat: number;
++    };
++    benefits: string;
++    imageEmoji?: string;
++  }>;
++  tips: string[];
++}
++
++interface SimpleMealPlanViewProps {
++  mealPlan: MealPlan;
++  onSave: () => void;
++  targetUser: 'mother' | 'child';
++  mealType: string;
++}
++
++/**
++ * A simplified meal plan view component that avoids complex animations and interactions
++ * to prevent rendering issues
++ */
++const SimpleMealPlanView: React.FC<SimpleMealPlanViewProps> = ({
++  mealPlan,
++  onSave,
++  targetUser,
++  mealType
++}) => {
++  // Error handling for mealPlan
++  if (!mealPlan) {
++    return (
++      <div className="p-4 text-center">
++        <p className="text-red-500">Error: Invalid meal plan data</p>
++        <p className="text-muted-foreground mt-2">Please try generating a new meal plan</p>
++      </div>
++    );
++  }
++  
++  if (!mealPlan.meals || !Array.isArray(mealPlan.meals) || mealPlan.meals.length === 0) {
++    return (
++      <div className="p-4 text-center">
++        <p className="text-red-500">Error: No meals found in the meal plan</p>
++        <p className="text-muted-foreground mt-2">Please try generating a new meal plan</p>
++      </div>
++    );
++  }
++  
++  return (
++    <div className="space-y-6">
++      <Card>
++        <CardHeader>
++          <div className="flex justify-between items-start">
++            <div>
++              <CardTitle>Your AI Meal Plan</CardTitle>
++              <CardDescription>
++                For {targetUser === 'mother' ? 'Mother' : 'Child'} • {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
++              </CardDescription>
++            </div>
++            <Button 
++              variant="outline" 
++              size="sm"
++              onClick={onSave}
++            >
++              <Save className="h-4 w-4 mr-2" />
++              Save Plan
++            </Button>
++          </div>
++        </CardHeader>
++        <CardContent>
++          <p className="text-sm mb-4">{mealPlan.introduction}</p>
++        </CardContent>
++      </Card>
++      
++      <div className="space-y-4">
++        <h3 className="text-lg font-medium">Meals</h3>
++        
++        {mealPlan.meals.map((meal, index) => (
++          <Card key={index} className="mb-4">
++            <CardHeader>
++              <CardTitle className="flex items-center text-base">
++                <span className="mr-2 text-xl">{meal.imageEmoji || '🍽️'}</span>
++                <span>{meal.name}</span>
++              </CardTitle>
++            </CardHeader>
++            <CardContent>
++              <div className="space-y-4">
++                <div>
++                  <h4 className="text-sm font-medium mb-2">Ingredients</h4>
++                  <ul className="text-sm space-y-1">
++                    {Array.isArray(meal.ingredients) && meal.ingredients.map((ingredient, i) => (
++                      <li key={i} className="flex items-start">
++                        <span className="mr-2">•</span>
++                        <span>{ingredient}</span>
++                      </li>
++                    ))}
++                  </ul>
++                </div>
++                
++                <div>
++                  <h4 className="text-sm font-medium mb-2">Instructions</h4>
++                  <ol className="text-sm space-y-1 list-decimal list-inside">
++                    {Array.isArray(meal.instructions) && meal.instructions.map((instruction, i) => (
++                      <li key={i} className="pl-1">{instruction}</li>
++                    ))}
++                  </ol>
++                </div>
++                
++                <div>
++                  <h4 className="text-sm font-medium mb-2">Nutrition Information</h4>
++                  <div className="flex flex-wrap gap-2">
++                    {meal.nutrients && (
++                      <>
++                        <Badge variant="outline">Calories: {meal.nutrients.calories || 0}</Badge>
++                        <Badge variant="outline">Protein: {meal.nutrients.protein || 0}g</Badge>
++                        <Badge variant="outline">Carbs: {meal.nutrients.carbs || 0}g</Badge>
++                        <Badge variant="outline">Fat: {meal.nutrients.fat || 0}g</Badge>
++                      </>
++                    )}
++                  </div>
++                </div>
++                
++                {meal.benefits && (
++                  <div>
++                    <h4 className="text-sm font-medium mb-2">Benefits</h4>
++                    <p className="text-sm text-muted-foreground">{meal.benefits}</p>
++                  </div>
++                )}
++              </div>
++            </CardContent>
++          </Card>
++        ))}
++      </div>
++      
++      {mealPlan.tips && mealPlan.tips.length > 0 && (
++        <Card>
++          <CardHeader>
++            <CardTitle className="text-base">Tips</CardTitle>
++          </CardHeader>
++          <CardContent>
++            <ul className="space-y-2">
++              {mealPlan.tips.map((tip, index) => (
++                <li key={index} className="flex items-start">
++                  <span className="mr-2">•</span>
++                  <span className="text-sm">{tip}</span>
++                </li>
++              ))}
++            </ul>
++          </CardContent>
++        </Card>
++      )}
++    </div>
++  );
++};
++
++export default SimpleMealPlanView;
+diff --git a/src/services/mealPlanning/aiMealService.js b/src/services/mealPlanning/aiMealService.js
+new file mode 100644
+index 00000000..4ea53eb7
+--- /dev/null
++++ b/src/services/mealPlanning/aiMealService.js
+@@ -0,0 +1,370 @@
++/**
++ * Service for interacting with AI meal planning functionality
++ */
++
++import { supabase } from '@/integrations/supabase/client';
++
++/**
++ * Initialize the Zimbabwe foods database
++ * This should be called once to set up the initial data
++ * @returns {Promise<Object>} Result of the initialization
++ */
++export const initializeZimbabweFoods = async () => {
++  try {
++    const { data, error } = await supabase.functions.invoke('setup-zimbabwe-foods', {
++      method: 'POST',
++    });
++
++    if (error) {
++      console.error('Error initializing Zimbabwe foods:', error);
++      throw error;
++    }
++
++    return data;
++  } catch (error) {
++    console.error('Error initializing Zimbabwe foods:', error);
++    throw error;
++  }
++};
++
++/**
++ * Generate a meal plan using the AI model
++ * @param {Object} preferences - User preferences for the meal plan
++ * @returns {Promise<Object>} Generated meal plan
++ */
++export const generateAIMealPlan = async (preferences) => {
++  try {
++    console.log('Generating meal plan with preferences:', preferences);
++
++    // First try the Python backend
++    try {
++      console.log('Attempting to use Python backend at /api/meal-plan');
++
++      // Try with absolute URL first
++      const backendUrl = 'http://localhost:8000/api/meal-plan';
++      console.log('Using absolute URL:', backendUrl);
++
++      const response = await fetch(backendUrl, {
++        method: 'POST',
++        headers: {
++          'Content-Type': 'application/json',
++          'Accept': 'application/json',
++        },
++        body: JSON.stringify(preferences),
++      });
++
++      console.log('Python backend response status:', response.status);
++
++      if (!response.ok) {
++        throw new Error(`HTTP error! status: ${response.status}`);
++      }
++
++      let data;
++      try {
++        const text = await response.text();
++        console.log('Raw response text:', text);
++        data = JSON.parse(text);
++      } catch (parseError) {
++        console.error('Error parsing JSON response:', parseError);
++        throw new Error('Invalid JSON response from backend');
++      }
++
++      console.log('Python backend response data:', data);
++
++      if (!data.mealPlan) {
++        console.warn('Python backend response missing mealPlan property:', data);
++        throw new Error('Invalid response format from Python backend');
++      }
++
++      // Validate meal plan structure
++      if (!data.mealPlan.meals || !Array.isArray(data.mealPlan.meals)) {
++        console.warn('Python backend response has invalid meal plan structure:', data.mealPlan);
++        throw new Error('Invalid meal plan structure from Python backend');
++      }
++
++      // Create a safe copy of the meal plan with default values for missing properties
++      const safeMealPlan = {
++        introduction: data.mealPlan.introduction || 'Your personalized meal plan',
++        meals: data.mealPlan.meals.map(meal => ({
++          name: meal.name || 'Unnamed Meal',
++          ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
++          instructions: Array.isArray(meal.instructions) ? meal.instructions : [],
++          nutrients: {
++            calories: meal.nutrients?.calories || 0,
++            protein: meal.nutrients?.protein || 0,
++            carbs: meal.nutrients?.carbs || 0,
++            fat: meal.nutrients?.fat || 0
++          },
++          benefits: meal.benefits || '',
++          imageEmoji: meal.imageEmoji || '🍽️'
++        })),
++        tips: Array.isArray(data.mealPlan.tips) ? data.mealPlan.tips : []
++      };
++
++      return safeMealPlan;
++    } catch (backendError) {
++      console.warn('Error using Python backend, falling back to Edge Function:', backendError);
++
++      // Fall back to Edge Function if Python backend fails
++      console.log('Attempting to use Supabase Edge Function');
++
++      const { data, error } = await supabase.functions.invoke('ai-meal-planner', {
++        method: 'POST',
++        body: { preferences },
++      });
++
++      if (error) {
++        console.error('Error generating meal plan with Edge Function:', error);
++        throw error;
++      }
++
++      console.log('Edge Function response data:', data);
++
++      if (!data.mealPlan) {
++        console.warn('Edge Function response missing mealPlan property:', data);
++        throw new Error('Invalid response format from Edge Function');
++      }
++
++      // Validate meal plan structure
++      if (!data.mealPlan.meals || !Array.isArray(data.mealPlan.meals)) {
++        console.warn('Edge Function response has invalid meal plan structure:', data.mealPlan);
++        throw new Error('Invalid meal plan structure from Edge Function');
++      }
++
++      // Create a safe copy of the meal plan with default values for missing properties
++      const safeMealPlan = {
++        introduction: data.mealPlan.introduction || 'Your personalized meal plan',
++        meals: data.mealPlan.meals.map(meal => ({
++          name: meal.name || 'Unnamed Meal',
++          ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
++          instructions: Array.isArray(meal.instructions) ? meal.instructions : [],
++          nutrients: {
++            calories: meal.nutrients?.calories || 0,
++            protein: meal.nutrients?.protein || 0,
++            carbs: meal.nutrients?.carbs || 0,
++            fat: meal.nutrients?.fat || 0
++          },
++          benefits: meal.benefits || '',
++          imageEmoji: meal.imageEmoji || '🍽️'
++        })),
++        tips: Array.isArray(data.mealPlan.tips) ? data.mealPlan.tips : []
++      };
++
++      return safeMealPlan;
++    }
++  } catch (error) {
++    console.error('Error generating meal plan:', error);
++
++    // Return a fallback meal plan in case of error
++    return {
++      introduction: "We couldn't generate a personalized meal plan at this time. Here's a simple meal suggestion instead.",
++      meals: [
++        {
++          name: "Simple Nutritious Breakfast",
++          ingredients: ["Oatmeal", "Milk", "Honey", "Banana"],
++          instructions: ["Mix oatmeal with milk", "Heat for 2 minutes", "Add honey and sliced banana"],
++          nutrients: { calories: 300, protein: 10, carbs: 45, fat: 5 },
++          benefits: "Provides energy and essential nutrients to start the day.",
++          imageEmoji: "🥣"
++        }
++      ],
++      tips: ["Prepare ingredients the night before for quicker cooking."]
++    };
++  }
++};
++
++/**
++ * Save a generated meal plan to the database
++ * @param {Object} mealPlan - The generated meal plan
++ * @param {Object} options - Additional options (userId, targetUser, mealType)
++ * @returns {Promise<Object>} Result of the save operation
++ */
++export const saveMealPlan = async (mealPlan, { userId, targetUser, mealType }) => {
++  try {
++    // Get auth token for the Python backend
++    const { data: { session } } = await supabase.auth.getSession();
++    const token = session?.access_token;
++
++    // Try to use the Python backend first
++    if (token) {
++      try {
++        const response = await fetch('/api/user-meal-plans', {
++          method: 'POST',
++          headers: {
++            'Content-Type': 'application/json',
++            'Authorization': `Bearer ${token}`
++          },
++          body: JSON.stringify({
++            mealPlan,
++            userId,
++            targetUser,
++            mealType
++          }),
++        });
++
++        if (response.ok) {
++          return await response.json();
++        }
++
++        // If Python backend fails, fall back to direct Supabase
++        console.warn('Error saving to Python backend, falling back to direct Supabase');
++      } catch (backendError) {
++        console.warn('Error using Python backend for saving, falling back to direct Supabase:', backendError);
++      }
++    }
++
++    // Fall back to direct Supabase
++    const { data, error } = await supabase
++      .from('ai_meal_plans')
++      .insert({
++        user_id: userId,
++        plan_data: mealPlan,
++        target_user: targetUser,
++        meal_type: mealType,
++      })
++      .select()
++      .single();
++
++    if (error) {
++      throw error;
++    }
++
++    return data;
++  } catch (error) {
++    console.error('Error saving meal plan:', error);
++    throw error;
++  }
++};
++
++/**
++ * Get all saved meal plans for a user
++ * @param {string} userId - The user ID
++ * @returns {Promise<Array>} Array of meal plans
++ */
++export const getUserMealPlans = async (userId) => {
++  try {
++    // Get auth token for the Python backend
++    const { data: { session } } = await supabase.auth.getSession();
++    const token = session?.access_token;
++
++    // Try to use the Python backend first
++    if (token) {
++      try {
++        const response = await fetch('/api/user-meal-plans', {
++          method: 'GET',
++          headers: {
++            'Authorization': `Bearer ${token}`
++          }
++        });
++
++        if (response.ok) {
++          const data = await response.json();
++          return data.mealPlans || [];
++        }
++
++        // If Python backend fails, fall back to direct Supabase
++        console.warn('Error fetching from Python backend, falling back to direct Supabase');
++      } catch (backendError) {
++        console.warn('Error using Python backend for fetching, falling back to direct Supabase:', backendError);
++      }
++    }
++
++    // Fall back to direct Supabase
++    const { data, error } = await supabase
++      .from('ai_meal_plans')
++      .select('*')
++      .eq('user_id', userId)
++      .order('created_at', { ascending: false });
++
++    if (error) {
++      throw error;
++    }
++
++    return data || [];
++  } catch (error) {
++    console.error('Error fetching meal plans:', error);
++    throw error;
++  }
++};
++
++/**
++ * Delete a meal plan
++ * @param {string} planId - The ID of the meal plan to delete
++ * @returns {Promise<Object>} Result of the delete operation
++ */
++export const deleteMealPlan = async (planId) => {
++  try {
++    // Get auth token for the Python backend
++    const { data: { session } } = await supabase.auth.getSession();
++    const token = session?.access_token;
++
++    // Try to use the Python backend first
++    if (token) {
++      try {
++        const response = await fetch(`/api/user-meal-plans/${planId}`, {
++          method: 'DELETE',
++          headers: {
++            'Authorization': `Bearer ${token}`
++          }
++        });
++
++        if (response.ok) {
++          return { success: true };
++        }
++
++        // If Python backend fails, fall back to direct Supabase
++        console.warn('Error deleting from Python backend, falling back to direct Supabase');
++      } catch (backendError) {
++        console.warn('Error using Python backend for deleting, falling back to direct Supabase:', backendError);
++      }
++    }
++
++    // Fall back to direct Supabase
++    const { error } = await supabase
++      .from('ai_meal_plans')
++      .delete()
++      .eq('id', planId);
++
++    if (error) {
++      throw error;
++    }
++
++    return { success: true };
++  } catch (error) {
++    console.error('Error deleting meal plan:', error);
++    throw error;
++  }
++};
++
++/**
++ * Initialize the Zimbabwe foods database on app startup
++ * This is called when the app loads to ensure the data is available
++ */
++export const initializeDataOnStartup = async () => {
++  try {
++    // Check if we already have data
++    const { data, error } = await supabase
++      .from('zimbabwe_foods')
++      .select('id')
++      .limit(1);
++
++    if (error) {
++      console.error('Error checking Zimbabwe foods:', error);
++      return;
++    }
++
++    // If no data exists, initialize it
++    if (!data || data.length === 0) {
++      console.log('Initializing Zimbabwe foods database...');
++      await initializeZimbabweFoods();
++      console.log('Zimbabwe foods database initialized successfully');
++    } else {
++      console.log('Zimbabwe foods database already initialized');
++    }
++  } catch (error) {
++    console.error('Error initializing data on startup:', error);
++  }
++};
++
++// Initialize the data when this module is imported
++initializeDataOnStartup().catch(console.error);
+diff --git a/src/services/mealPlanning/mistralService.js b/src/services/mealPlanning/mistralService.js
+new file mode 100644
+index 00000000..2a32e87e
+--- /dev/null
++++ b/src/services/mealPlanning/mistralService.js
+@@ -0,0 +1,239 @@
++/**
++ * Service to interact with Mistral-Large for AI-powered meal planning
++ */
++
++import { supabase } from '@/integrations/supabase/client';
++import MistralClient from '@mistralai/mistralai';
++
++// Initialize Mistral client
++const mistralClient = new MistralClient(
++  process.env.MISTRAL_API_KEY || '0e5ahwrl54ofU9CC5T5n2uCiRIfWNzpo'
++);
++
++/**
++ * Get relevant food items based on user preferences
++ * @param {Object} preferences - User preferences
++ * @returns {Array} - Array of relevant food items
++ */
++export const getRelevantFoodItems = async (preferences) => {
++  try {
++    const {
++      targetUser, // 'mother' or 'child'
++      childAge, // in months, if targetUser is 'child'
++      mealType, // 'breakfast', 'lunch', 'dinner', 'snack'
++      dietaryRestrictions, // array of restrictions
++      nutritionGoals, // object with nutrition goals
++      preferTraditional // boolean
++    } = preferences;
++    
++    // Construct query based on preferences
++    let query = supabase
++      .from('zimbabwe_foods')
++      .select('*');
++    
++    // Filter by target user
++    if (targetUser === 'child') {
++      // Convert child age to appropriate category
++      let ageCategory;
++      if (childAge < 6) {
++        ageCategory = 'child_0_6';
++      } else if (childAge < 9) {
++        ageCategory = 'child_6_plus';
++      } else if (childAge < 12) {
++        ageCategory = 'child_9_plus';
++      } else {
++        ageCategory = 'child_12_plus';
++      }
++      
++      query = query.contains('suitable_for', [ageCategory]);
++    } else {
++      query = query.contains('suitable_for', ['mother']);
++    }
++    
++    // Filter by meal type
++    if (mealType) {
++      query = query.contains('meal_type', [mealType]);
++    }
++    
++    // Filter by traditional preference
++    if (preferTraditional) {
++      query = query.eq('traditional', true);
++    }
++    
++    // Execute query
++    const { data, error } = await query;
++    
++    if (error) {
++      throw error;
++    }
++    
++    return data;
++  } catch (error) {
++    console.error('Error getting relevant food items:', error);
++    throw error;
++  }
++};
++
++/**
++ * Generate a meal plan using Mistral-Large
++ * @param {Object} preferences - User preferences
++ * @returns {Object} - Generated meal plan
++ */
++export const generateMealPlan = async (preferences) => {
++  try {
++    // Get relevant food items based on preferences
++    const relevantFoodItems = await getRelevantFoodItems(preferences);
++    
++    // Prepare food items data for Mistral
++    const foodItemsData = relevantFoodItems.map(item => ({
++      name: item.name,
++      description: item.description,
++      nutrients: item.nutrients,
++      suitable_for: item.suitable_for,
++      meal_type: item.meal_type,
++      traditional: item.traditional
++    }));
++    
++    // Construct prompt for Mistral
++    const systemPrompt = `You are a nutritional expert specializing in meal planning for mothers and children in Zimbabwe. 
++    Your task is to create a personalized meal plan based on the user's preferences and the available food items.
++    The meal plan should be nutritionally balanced, culturally appropriate, and tailored to the specific needs of the target user.
++    
++    Available food items:
++    ${JSON.stringify(foodItemsData, null, 2)}
++    
++    User preferences:
++    ${JSON.stringify(preferences, null, 2)}
++    
++    Please generate a meal plan with the following structure:
++    1. A brief introduction explaining the benefits of the meal plan
++    2. A list of meals for the specified meal type (breakfast, lunch, dinner, or snack)
++    3. For each meal, include:
++       - Name
++       - Ingredients
++       - Preparation instructions
++       - Nutritional information
++       - Benefits for the target user
++    4. Tips for preparation and storage
++    
++    Return the meal plan as a JSON object with the following structure:
++    {
++      "introduction": "string",
++      "meals": [
++        {
++          "name": "string",
++          "ingredients": ["string"],
++          "instructions": ["string"],
++          "nutrients": { "calories": number, "protein": number, "carbs": number, "fat": number },
++          "benefits": "string",
++          "imageEmoji": "string" // An emoji that represents this food
++        }
++      ],
++      "tips": ["string"]
++    }`;
++    
++    // Call Mistral API
++    const response = await mistralClient.chat({
++      model: "mistral-large-latest",
++      messages: [
++        { role: "system", content: systemPrompt },
++        { role: "user", content: "Please generate a meal plan based on my preferences." }
++      ],
++      temperature: 0.7,
++      maxTokens: 4000,
++      responseFormat: { type: "json_object" }
++    });
++    
++    // Parse and return the meal plan
++    const mealPlanContent = response.choices[0].message.content;
++    const mealPlan = JSON.parse(mealPlanContent);
++    
++    return mealPlan;
++  } catch (error) {
++    console.error('Error generating meal plan:', error);
++    throw error;
++  }
++};
++
++/**
++ * Get meal recommendations based on specific criteria
++ * @param {Object} criteria - Specific criteria for recommendations
++ * @returns {Array} - Array of recommended meals
++ */
++export const getMealRecommendations = async (criteria) => {
++  try {
++    const {
++      targetUser,
++      mealType,
++      nutritionFocus, // 'protein', 'iron', 'calcium', etc.
++      maxPrepTime, // in minutes
++      ingredients // array of preferred ingredients
++    } = criteria;
++    
++    // Get relevant food items
++    const relevantFoodItems = await getRelevantFoodItems({
++      targetUser,
++      mealType,
++      preferTraditional: true
++    });
++    
++    // Prepare food items data for Mistral
++    const foodItemsData = relevantFoodItems.map(item => ({
++      name: item.name,
++      description: item.description,
++      nutrients: item.nutrients,
++      suitable_for: item.suitable_for,
++      meal_type: item.meal_type,
++      traditional: item.traditional
++    }));
++    
++    // Construct prompt for Mistral
++    const systemPrompt = `You are a nutritional expert specializing in meal recommendations for mothers and children in Zimbabwe.
++    Your task is to recommend meals based on the user's specific criteria and the available food items.
++    
++    Available food items:
++    ${JSON.stringify(foodItemsData, null, 2)}
++    
++    User criteria:
++    ${JSON.stringify(criteria, null, 2)}
++    
++    Please recommend 3-5 meals that best match the criteria. For each meal, include:
++    - Name
++    - Brief description
++    - Key nutritional benefits
++    - Why it's suitable for the target user
++    - An emoji that represents this food
++    
++    Return the recommendations as a JSON array with the following structure:
++    [
++      {
++        "name": "string",
++        "description": "string",
++        "nutritionalBenefits": "string",
++        "suitabilityReason": "string",
++        "imageEmoji": "string"
++      }
++    ]`;
++    
++    // Call Mistral API
++    const response = await mistralClient.chat({
++      model: "mistral-large-latest",
++      messages: [
++        { role: "system", content: systemPrompt },
++        { role: "user", content: "Please recommend meals based on my criteria." }
++      ],
++      temperature: 0.7,
++      maxTokens: 2000,
++      responseFormat: { type: "json_object" }
++    });
++    
++    // Parse and return the recommendations
++    const recommendationsContent = response.choices[0].message.content;
++    const recommendations = JSON.parse(recommendationsContent);
++    
++    return recommendations;
++  } catch (error) {
++    console.error('Error getting meal recommendations:', error);
++    throw error;
++  }
++};
+diff --git a/src/services/mealPlanning/uploadPickleToSupabase.js b/src/services/mealPlanning/uploadPickleToSupabase.js
+new file mode 100644
+index 00000000..1a02a883
+--- /dev/null
++++ b/src/services/mealPlanning/uploadPickleToSupabase.js
+@@ -0,0 +1,210 @@
++/**
++ * Service to upload the Zimbabwe food composition pickle file to Supabase
++ * and create vector embeddings for AI-powered meal planning
++ */
++
++import { supabase } from '@/integrations/supabase/client';
++import { createClient } from '@supabase/supabase-js';
++import fs from 'fs';
++import path from 'path';
++import { OpenAI } from 'openai';
++
++// Create a Supabase client with admin privileges for vector operations
++const supabaseAdmin = createClient(
++  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
++  '0e5ahwrl54ofU9CC5T5n2uCiRIfWNzpo' // API key
++);
++
++// Initialize OpenAI client for creating embeddings
++const openai = new OpenAI({
++  apiKey: process.env.OPENAI_API_KEY || '',
++});
++
++/**
++ * Process the pickle file and extract food items
++ * @param {Buffer} pickleData - The pickle file data
++ * @returns {Array} - Array of food items
++ */
++const processFoodData = async (pickleData) => {
++  try {
++    // In a real implementation, you would use a Python script or service
++    // to process the pickle file. For this example, we'll simulate the output.
++    
++    // Simulated food items extracted from the pickle file
++    const foodItems = [
++      {
++        name: "Sadza (Maize Porridge)",
++        description: "Traditional Zimbabwean staple food made from maize meal",
++        nutrients: {
++          calories: 120,
++          protein: 2.5,
++          carbs: 25,
++          fat: 0.5
++        },
++        suitable_for: ["mother", "child_9_plus"],
++        meal_type: ["lunch", "dinner"],
++        traditional: true
++      },
++      {
++        name: "Mashed Sweet Potato and Avocado",
++        description: "Nutritious blend for babies combining sweet potatoes and avocados",
++        nutrients: {
++          calories: 150,
++          protein: 2,
++          carbs: 20,
++          fat: 7
++        },
++        suitable_for: ["child_6_plus"],
++        meal_type: ["lunch"],
++        traditional: true
++      },
++      // More food items would be extracted from the actual pickle file
++    ];
++    
++    return foodItems;
++  } catch (error) {
++    console.error('Error processing pickle data:', error);
++    throw error;
++  }
++};
++
++/**
++ * Create vector embeddings for food items
++ * @param {Array} foodItems - Array of food items
++ * @returns {Array} - Array of food items with embeddings
++ */
++const createEmbeddings = async (foodItems) => {
++  try {
++    const itemsWithEmbeddings = [];
++    
++    for (const item of foodItems) {
++      // Create a text representation of the food item for embedding
++      const textToEmbed = `
++        Food: ${item.name}
++        Description: ${item.description}
++        Nutrients: Calories ${item.nutrients.calories}, Protein ${item.nutrients.protein}g, Carbs ${item.nutrients.carbs}g, Fat ${item.nutrients.fat}g
++        Suitable for: ${item.suitable_for.join(', ')}
++        Meal type: ${item.meal_type.join(', ')}
++        Traditional: ${item.traditional ? 'Yes' : 'No'}
++      `;
++      
++      // Generate embedding using OpenAI
++      const embeddingResponse = await openai.embeddings.create({
++        model: "text-embedding-ada-002",
++        input: textToEmbed,
++      });
++      
++      // Add embedding to food item
++      itemsWithEmbeddings.push({
++        ...item,
++        embedding: embeddingResponse.data[0].embedding,
++      });
++    }
++    
++    return itemsWithEmbeddings;
++  } catch (error) {
++    console.error('Error creating embeddings:', error);
++    throw error;
++  }
++};
++
++/**
++ * Store food items with embeddings in Supabase
++ * @param {Array} foodItemsWithEmbeddings - Array of food items with embeddings
++ */
++const storeFoodItemsInSupabase = async (foodItemsWithEmbeddings) => {
++  try {
++    // First, ensure the table exists with vector support
++    await supabaseAdmin.rpc('create_zimbabwe_food_table_if_not_exists');
++    
++    // Insert food items with embeddings
++    for (const item of foodItemsWithEmbeddings) {
++      const { error } = await supabaseAdmin
++        .from('zimbabwe_foods')
++        .insert({
++          name: item.name,
++          description: item.description,
++          nutrients: item.nutrients,
++          suitable_for: item.suitable_for,
++          meal_type: item.meal_type,
++          traditional: item.traditional,
++          embedding: item.embedding,
++        });
++      
++      if (error) {
++        console.error('Error inserting food item:', error);
++      }
++    }
++    
++    console.log(`Successfully stored ${foodItemsWithEmbeddings.length} food items in Supabase`);
++  } catch (error) {
++    console.error('Error storing food items in Supabase:', error);
++    throw error;
++  }
++};
++
++/**
++ * Upload pickle file to Supabase storage
++ * @param {string} filePath - Path to the pickle file
++ * @returns {string} - URL of the uploaded file
++ */
++const uploadPickleFile = async (filePath) => {
++  try {
++    const fileName = path.basename(filePath);
++    const fileData = fs.readFileSync(filePath);
++    
++    const { data, error } = await supabase.storage
++      .from('ai-data')
++      .upload(`zimbabwe-foods/${fileName}`, fileData, {
++        contentType: 'application/octet-stream',
++        upsert: true
++      });
++    
++    if (error) {
++      throw error;
++    }
++    
++    const { data: urlData } = supabase.storage
++      .from('ai-data')
++      .getPublicUrl(`zimbabwe-foods/${fileName}`);
++    
++    return urlData.publicUrl;
++  } catch (error) {
++    console.error('Error uploading pickle file:', error);
++    throw error;
++  }
++};
++
++/**
++ * Main function to process and upload the pickle file
++ * @param {string} filePath - Path to the pickle file
++ */
++export const processAndUploadPickleFile = async (filePath) => {
++  try {
++    // Upload pickle file to Supabase storage
++    const fileUrl = await uploadPickleFile(filePath);
++    console.log('Pickle file uploaded to:', fileUrl);
++    
++    // Read and process the pickle file
++    const fileData = fs.readFileSync(filePath);
++    const foodItems = await processFoodData(fileData);
++    
++    // Create embeddings for food items
++    const foodItemsWithEmbeddings = await createEmbeddings(foodItems);
++    
++    // Store food items with embeddings in Supabase
++    await storeFoodItemsInSupabase(foodItemsWithEmbeddings);
++    
++    return {
++      success: true,
++      fileUrl,
++      itemCount: foodItems.length
++    };
++  } catch (error) {
++    console.error('Error processing and uploading pickle file:', error);
++    return {
++      success: false,
++      error: error.message
++    };
++  }
++};
+diff --git a/src/utils/calendarUtils.ts b/src/utils/calendarUtils.ts
+new file mode 100644
+index 00000000..77fb0383
+--- /dev/null
++++ b/src/utils/calendarUtils.ts
+@@ -0,0 +1,178 @@
++/**
++ * Utility functions for calendar integration
++ */
++
++/**
++ * Generate a Google Calendar event URL
++ * @param {Object} params - Event parameters
++ * @returns {string} Google Calendar URL
++ */
++export const generateGoogleCalendarUrl = (params: {
++  title: string;
++  description: string;
++  location?: string;
++  startDate: Date;
++  endDate: Date;
++}) => {
++  const { title, description, location = '', startDate, endDate } = params;
++
++  // Format dates for Google Calendar
++  const formatDate = (date: Date) => {
++    return date.toISOString().replace(/-|:|\.\d+/g, '');
++  };
++
++  const startDateFormatted = formatDate(startDate);
++  const endDateFormatted = formatDate(endDate);
++
++  // Build URL
++  const url = new URL('https://calendar.google.com/calendar/render');
++  url.searchParams.append('action', 'TEMPLATE');
++  url.searchParams.append('text', title);
++  url.searchParams.append('details', description);
++  url.searchParams.append('location', location);
++  url.searchParams.append('dates', `${startDateFormatted}/${endDateFormatted}`);
++
++  return url.toString();
++};
++
++/**
++ * Generate an iCal file content
++ * @param {Object} params - Event parameters
++ * @returns {string} iCal file content
++ */
++export const generateICalContent = (params: {
++  title: string;
++  description: string;
++  location?: string;
++  startDate: Date;
++  endDate: Date;
++}) => {
++  const { title, description, location = '', startDate, endDate } = params;
++
++  // Format dates for iCal
++  const formatDate = (date: Date) => {
++    return date.toISOString().replace(/-|:|\.\d+/g, '');
++  };
++
++  const startDateFormatted = formatDate(startDate);
++  const endDateFormatted = formatDate(endDate);
++  const now = formatDate(new Date());
++
++  // Generate a unique ID
++  const uid = `${now}-${Math.floor(Math.random() * 100000)}@mommingle.com`;
++
++  // Build iCal content
++  return `BEGIN:VCALENDAR
++VERSION:2.0
++PRODID:-//MomMingle//AI Meal Planner//EN
++CALSCALE:GREGORIAN
++METHOD:PUBLISH
++BEGIN:VEVENT
++UID:${uid}
++DTSTAMP:${now}
++DTSTART:${startDateFormatted}
++DTEND:${endDateFormatted}
++SUMMARY:${title}
++DESCRIPTION:${description.replace(/\n/g, '\\n')}
++LOCATION:${location}
++STATUS:CONFIRMED
++SEQUENCE:0
++END:VEVENT
++END:VCALENDAR`;
++};
++
++/**
++ * Download an iCal file
++ * @param {Object} params - Event parameters
++ */
++export const downloadICalFile = (params: {
++  title: string;
++  description: string;
++  location?: string;
++  startDate: Date;
++  endDate: Date;
++}) => {
++  const { title } = params;
++  const content = generateICalContent(params);
++
++  // Create a blob and download link
++  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
++  const url = URL.createObjectURL(blob);
++
++  const link = document.createElement('a');
++  link.href = url;
++  link.download = `${title.replace(/\s+/g, '_')}.ics`;
++  document.body.appendChild(link);
++  link.click();
++
++  // Clean up
++  document.body.removeChild(link);
++  URL.revokeObjectURL(url);
++};
++
++/**
++ * Format meal plan details for calendar description
++ * @param {Object} meal - Meal object
++ * @returns {string} Formatted description
++ */
++export const formatMealDescription = (meal: {
++  name: string;
++  ingredients: string[];
++  instructions: string[];
++  nutrients: {
++    calories: number;
++    protein: number;
++    carbs: number;
++    fat: number;
++  };
++}) => {
++  try {
++    if (!meal) {
++      console.error('Meal is undefined or null');
++      return 'No meal details available';
++    }
++
++    const { name, ingredients, instructions, nutrients } = meal;
++
++    if (!name || !ingredients || !instructions || !nutrients) {
++      console.error('Meal is missing required properties:', meal);
++      return `${name || 'Unnamed Meal'}\n\nMeal details incomplete`;
++    }
++
++    let description = `${name}\n\n`;
++
++    // Add ingredients
++    description += 'INGREDIENTS:\n';
++    if (Array.isArray(ingredients)) {
++      ingredients.forEach((ingredient, index) => {
++        description += `${index + 1}. ${ingredient}\n`;
++      });
++    } else {
++      description += 'No ingredients available\n';
++    }
++
++    description += '\nINSTRUCTIONS:\n';
++    if (Array.isArray(instructions)) {
++      instructions.forEach((instruction, index) => {
++        description += `${index + 1}. ${instruction}\n`;
++      });
++    } else {
++      description += 'No instructions available\n';
++    }
++
++    description += '\nNUTRITION INFO:\n';
++    if (nutrients) {
++      description += `Calories: ${nutrients.calories || 'N/A'}, `;
++      description += `Protein: ${nutrients.protein || 'N/A'}g, `;
++      description += `Carbs: ${nutrients.carbs || 'N/A'}g, `;
++      description += `Fat: ${nutrients.fat || 'N/A'}g`;
++    } else {
++      description += 'Nutritional information not available';
++    }
++
++    return description;
++  } catch (error) {
++    console.error('Error formatting meal description:', error);
++    return 'Error formatting meal description';
++  }
++};
