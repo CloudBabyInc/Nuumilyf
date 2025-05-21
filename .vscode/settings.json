@@ -1,0 +1,5 @@
+{
+    "amp.commands.allowlist": [
+        "mv src/components/meals/SimpleMealPlanView.tsx.new src/components/meals/SimpleMealPlanView.tsx"
+    ]
+}
