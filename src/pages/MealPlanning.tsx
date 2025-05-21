@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2, ChevronLeft, Plus, Calendar, Clock, Filter, Search, Sparkles } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MealCard from '@/components/meals/MealCard';
 import MealPlanCalendar from '@/components/meals/MealPlanCalendar';
 import AIMealPlanner from '@/components/meals/AIMealPlanner';
+import SavedMealPlanSelector from '@/components/meals/SavedMealPlanSelector';
 import { useTheme } from '@/components/theme/ThemeProvider';
 
 // Types
@@ -42,6 +43,7 @@ interface MealPlan {
 
 const MealPlanning = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -51,6 +53,78 @@ const MealPlanning = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [filteredMeals, setFilteredMeals] = useState<Meal[]>([]);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
+
+  // Check for state passed from AIMealPlanner
+  useEffect(() => {
+    if (location.state) {
+      const { refreshCalendar, selectedDate: newDate, activeTab: newTab } = location.state as any;
+
+      if (refreshCalendar) {
+        console.log('Refreshing calendar with state:', location.state);
+
+        // Clear the state to prevent it from being used again on refresh
+        window.history.replaceState({}, document.title);
+
+        // Set the active tab
+        if (newTab) {
+          setActiveTab(newTab);
+        }
+
+        // Set the selected date if provided
+        if (newDate) {
+          setSelectedDate(new Date(newDate));
+        }
+
+        // Force refresh meal plans
+        if (currentUser) {
+          fetchMealPlans(currentUser.id);
+        }
+      }
+    }
+  }, [location.state, currentUser]);
+
+  // Function to fetch meal plans (extracted for reuse)
+  const fetchMealPlans = async (userId: string) => {
+    try {
+      console.log(`Fetching meal plans for user: ${userId}`);
+
+      // First check if the user exists
+      if (!userId) {
+        console.error('Cannot fetch meal plans: No user ID provided');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('calendar_entries')
+        .select('*, meal:meal_id(*)')
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Supabase error fetching meal plans:', error);
+        throw error;
+      }
+
+      if (data) {
+        console.log(`Successfully fetched ${data.length} meal plans:`, data);
+
+        // Check if meal data is properly loaded
+        const missingMeals = data.filter(plan => !plan.meal);
+        if (missingMeals.length > 0) {
+          console.warn(`${missingMeals.length} meal plans have missing meal data:`, missingMeals);
+        }
+
+        setMealPlans(data as MealPlan[]);
+      } else {
+        console.log('No meal plans found for user');
+        setMealPlans([]);
+      }
+    } catch (error) {
+      console.error('Error fetching meal plans:', error);
+      toast.error('Failed to load meal plans. Please try again.');
+    }
+  };
 
   // Fetch current user
   useEffect(() => {
@@ -107,27 +181,8 @@ const MealPlanning = () => {
 
   // Fetch meal plans
   useEffect(() => {
-    const fetchMealPlans = async () => {
-      if (!currentUser) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('meal_plans')
-          .select('*, meal:meal_id(*)')
-          .eq('user_id', currentUser.id);
-
-        if (error) throw error;
-
-        if (data) {
-          setMealPlans(data as MealPlan[]);
-        }
-      } catch (error) {
-        toast.error('Failed to load meal plans');
-      }
-    };
-
     if (currentUser) {
-      fetchMealPlans();
+      fetchMealPlans(currentUser.id);
     }
   }, [currentUser]);
 
@@ -156,7 +211,7 @@ const MealPlanning = () => {
 
       // Check if meal plan already exists for this date and meal type
       const { data: existingPlan, error: checkError } = await supabase
-        .from('meal_plans')
+        .from('calendar_entries')
         .select('id')
         .eq('user_id', currentUser.id)
         .eq('date', dateString)
@@ -168,7 +223,7 @@ const MealPlanning = () => {
       if (existingPlan) {
         // Update existing plan
         const { error: updateError } = await supabase
-          .from('meal_plans')
+          .from('calendar_entries')
           .update({ meal_id: meal.id })
           .eq('id', existingPlan.id);
 
@@ -178,7 +233,7 @@ const MealPlanning = () => {
       } else {
         // Create new plan
         const { error: insertError } = await supabase
-          .from('meal_plans')
+          .from('calendar_entries')
           .insert({
             user_id: currentUser.id,
             meal_id: meal.id,
@@ -192,17 +247,9 @@ const MealPlanning = () => {
       }
 
       // Refresh meal plans
-      const { data: updatedPlans, error: fetchError } = await supabase
-        .from('meal_plans')
-        .select('*, meal:meal_id(*)')
-        .eq('user_id', currentUser.id);
-
-      if (fetchError) throw fetchError;
-
-      if (updatedPlans) {
-        setMealPlans(updatedPlans as MealPlan[]);
-      }
+      await fetchMealPlans(currentUser.id);
     } catch (error) {
+      console.error('Error adding meal to plan:', error);
       toast.error('Failed to add meal to plan');
     }
   };
@@ -215,6 +262,148 @@ const MealPlanning = () => {
     );
   }
 
+  // Handle adding a meal from AI meal plans
+  const handleAddMealFromAI = async (meal: any, mealType: string) => {
+    if (!currentUser) {
+      toast.error('Please sign in to add a meal plan');
+      return false;
+    }
+
+    try {
+      console.log('Adding AI meal to calendar:', meal);
+      console.log('Meal type:', mealType);
+      console.log('Selected date:', selectedDate);
+
+      // Validate meal type
+      if (!['breakfast', 'lunch', 'dinner', 'snack'].includes(mealType.toLowerCase())) {
+        console.error(`Invalid meal type: ${mealType}`);
+        toast.error(`Invalid meal type: ${mealType}. Please select a valid meal type.`);
+        return false;
+      }
+
+      // Normalize meal type
+      const normalizedMealType = mealType.toLowerCase() as 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+      // Create a new meal entry from the AI meal with detailed error handling
+      let mealInsertResult;
+      try {
+        mealInsertResult = await supabase
+          .from('meals')
+          .insert({
+            name: meal.name || 'Unnamed Meal',
+            description: meal.benefits || 'AI-generated meal',
+            emoji: meal.imageEmoji || '🍽️',
+            calories: Math.round(Number(meal.nutrients?.calories) || 0),
+            protein: Math.round(Number(meal.nutrients?.protein) || 0),
+            carbs: Math.round(Number(meal.nutrients?.carbs) || 0),
+            fat: Math.round(Number(meal.nutrients?.fat) || 0),
+            prep_time: 30, // Default prep time
+            tags: ['ai-generated'],
+            ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
+            instructions: Array.isArray(meal.instructions) ? meal.instructions : [],
+            user_id: currentUser.id
+          })
+          .select()
+          .single();
+      } catch (insertError) {
+        console.error('Error creating meal (caught exception):', insertError);
+        toast.error('Failed to create meal record. Please try again.');
+        return false;
+      }
+
+      if (mealInsertResult.error) {
+        console.error('Error creating meal:', mealInsertResult.error);
+        toast.error(`Failed to create meal: ${mealInsertResult.error.message}`);
+        return false;
+      }
+
+      const mealData = mealInsertResult.data;
+      console.log(`Successfully created meal with ID: ${mealData.id}`);
+
+      // Add the meal to the calendar
+      const dateString = selectedDate.toISOString().split('T')[0];
+
+      // Check if meal plan already exists for this date and meal type
+      let checkResult;
+      try {
+        checkResult = await supabase
+          .from('calendar_entries')
+          .select('id')
+          .eq('user_id', currentUser.id)
+          .eq('date', dateString)
+          .eq('meal_type', normalizedMealType)
+          .maybeSingle();
+      } catch (checkError) {
+        console.error('Error checking existing plan (caught exception):', checkError);
+        toast.error('Failed to check existing meal plans. Please try again.');
+        return false;
+      }
+
+      if (checkResult.error) {
+        console.error('Error checking existing plan:', checkResult.error);
+        toast.error(`Failed to check existing meal plans: ${checkResult.error.message}`);
+        return false;
+      }
+
+      const existingPlan = checkResult.data;
+
+      // Either update existing plan or create a new one
+      let updateResult;
+      if (existingPlan) {
+        console.log(`Updating existing meal plan (ID: ${existingPlan.id}) for ${normalizedMealType} on ${dateString}`);
+        try {
+          updateResult = await supabase
+            .from('calendar_entries')
+            .update({ meal_id: mealData.id })
+            .eq('id', existingPlan.id);
+        } catch (updateError) {
+          console.error('Error updating meal plan (caught exception):', updateError);
+          toast.error('Failed to update existing meal plan. Please try again.');
+          return false;
+        }
+
+        if (updateResult.error) {
+          console.error('Error updating meal plan:', updateResult.error);
+          toast.error(`Failed to update meal plan: ${updateResult.error.message}`);
+          return false;
+        }
+      } else {
+        console.log(`Creating new meal plan for ${normalizedMealType} on ${dateString}`);
+        try {
+          updateResult = await supabase
+            .from('calendar_entries')
+            .insert({
+              user_id: currentUser.id,
+              meal_id: mealData.id,
+              date: dateString,
+              meal_type: normalizedMealType
+            });
+        } catch (insertError) {
+          console.error('Error inserting meal plan (caught exception):', insertError);
+          toast.error('Failed to create new meal plan. Please try again.');
+          return false;
+        }
+
+        if (updateResult.error) {
+          console.error('Error inserting meal plan:', updateResult.error);
+          toast.error(`Failed to create meal plan: ${updateResult.error.message}`);
+          return false;
+        }
+      }
+
+      console.log('Successfully added meal to calendar');
+
+      // Refresh meal plans
+      await fetchMealPlans(currentUser.id);
+
+      return true;
+    } catch (error) {
+      console.error('Unexpected error adding AI meal to plan:', error);
+      toast.error('An unexpected error occurred. Please try again.');
+      return false;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header
@@ -223,8 +412,16 @@ const MealPlanning = () => {
         onBackClick={() => navigate(-1)}
       />
 
+      {/* Saved Meal Plan Selector Dialog */}
+      <SavedMealPlanSelector
+        isOpen={selectorOpen}
+        onClose={() => setSelectorOpen(false)}
+        onSelectMeal={handleAddMealFromAI}
+        mealType={selectedMealType}
+      />
+
       <div className="max-w-md mx-auto px-4">
-        <Tabs defaultValue="discover" className="w-full" onValueChange={setActiveTab}>
+        <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="discover">Discover</TabsTrigger>
             <TabsTrigger value="myplan">My Plan</TabsTrigger>
@@ -298,7 +495,11 @@ const MealPlanning = () => {
               mealPlans={mealPlans}
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
-              onAddMeal={(mealType) => setActiveTab('discover')}
+              onAddMeal={(mealType) => {
+                // Open the saved meal plan selector with the selected meal type
+                setSelectedMealType(mealType);
+                setSelectorOpen(true);
+              }}
             />
           </TabsContent>
 

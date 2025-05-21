@@ -123,22 +123,25 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (mode === 'dark') {
       root.classList.add('dark-mode');
 
-      // Update dark mode specific colors
-      root.style.setProperty('--background', '0 0% 7%');
+      // Update dark mode specific colors with improved contrast
+      root.style.setProperty('--background', '0 0% 10%'); // Slightly lighter for better readability
       root.style.setProperty('--foreground', '0 0% 98%');
-      root.style.setProperty('--card', '0 0% 10%');
+      root.style.setProperty('--card', '0 0% 13%'); // Slightly lighter card background
       root.style.setProperty('--card-foreground', '0 0% 98%');
-      root.style.setProperty('--popover', '0 0% 10%');
+      root.style.setProperty('--popover', '0 0% 13%');
       root.style.setProperty('--popover-foreground', '0 0% 98%');
-      root.style.setProperty('--muted', '0 0% 15%');
-      root.style.setProperty('--muted-foreground', '0 0% 70%');
-      root.style.setProperty('--border', '0 0% 20%');
-      root.style.setProperty('--input', '0 0% 15%');
+      root.style.setProperty('--muted', '0 0% 18%'); // Slightly lighter muted background
+      root.style.setProperty('--muted-foreground', '0 0% 80%'); // Increased contrast for muted text
+      root.style.setProperty('--border', '0 0% 25%'); // More visible borders
+      root.style.setProperty('--input', '0 0% 18%');
 
-      // Add overlay and hover colors for dark mode
-      root.style.setProperty('--overlay', 'rgba(255, 255, 255, 0.1)');
-      root.style.setProperty('--hover', 'rgba(255, 255, 255, 0.05)');
-      root.style.setProperty('--hover-light', 'rgba(255, 255, 255, 0.03)');
+      // Add overlay and hover colors for dark mode with improved visibility
+      root.style.setProperty('--overlay', 'rgba(255, 255, 255, 0.15)'); // Increased opacity
+      root.style.setProperty('--hover', 'rgba(255, 255, 255, 0.1)'); // Increased opacity
+      root.style.setProperty('--hover-light', 'rgba(255, 255, 255, 0.07)'); // Increased opacity
+
+      // Add focus state for accessibility
+      root.style.setProperty('--focus-ring', 'rgba(255, 255, 255, 0.5)');
     } else {
       root.classList.remove('dark-mode');
 
@@ -152,48 +155,54 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         const bgSaturation = bgHslValues.s;
         const cardSaturation = Math.max(2, bgHslValues.s - 1); // Slightly less saturated for cards
 
-        // Update light mode specific colors with theme-based hues
+        // Update light mode specific colors with theme-based hues and improved contrast
         root.style.setProperty('--background', `${bgHue} ${bgSaturation}% ${bgHslValues.l}%`);
         root.style.setProperty('--foreground', '0 0% 3.9%');
         root.style.setProperty('--card', `${bgHue} ${cardSaturation}% ${bgHslValues.l}%`);
         root.style.setProperty('--card-foreground', '0 0% 3.9%');
         root.style.setProperty('--popover', `${bgHue} ${cardSaturation}% ${bgHslValues.l}%`);
         root.style.setProperty('--popover-foreground', '0 0% 3.9%');
-        root.style.setProperty('--muted', `${bgHue} ${bgSaturation}% 96.1%`);
-        root.style.setProperty('--muted-foreground', '0 0% 45.1%');
-        root.style.setProperty('--border', `${bgHue} ${bgSaturation}% 89.8%`);
-        root.style.setProperty('--input', `${bgHue} ${bgSaturation}% 89.8%`);
+        root.style.setProperty('--muted', `${bgHue} ${bgSaturation}% 94%`); // Slightly darker for better contrast
+        root.style.setProperty('--muted-foreground', '0 0% 35%'); // Darker for better contrast (was 45.1%)
+        root.style.setProperty('--border', `${bgHue} ${bgSaturation}% 85%`); // Darker border for better visibility
+        root.style.setProperty('--input', `${bgHue} ${bgSaturation}% 85%`); // Darker input for better visibility
 
-        // Create theme-colored overlays with very subtle opacity
+        // Create theme-colored overlays with improved opacity for better visibility
         const overlayR = parseInt(primaryColor.substring(1, 3), 16);
         const overlayG = parseInt(primaryColor.substring(3, 5), 16);
         const overlayB = parseInt(primaryColor.substring(5, 7), 16);
 
-        // Add softer overlay and hover colors for light mode with theme color
-        root.style.setProperty('--overlay', `rgba(${overlayR}, ${overlayG}, ${overlayB}, 0.05)`);
-        root.style.setProperty('--hover', `rgba(${overlayR}, ${overlayG}, ${overlayB}, 0.03)`);
-        root.style.setProperty('--hover-light', `rgba(${overlayR}, ${overlayG}, ${overlayB}, 0.02)`);
+        // Add overlay and hover colors for light mode with improved visibility
+        root.style.setProperty('--overlay', `rgba(${overlayR}, ${overlayG}, ${overlayB}, 0.1)`); // Increased opacity
+        root.style.setProperty('--hover', `rgba(${overlayR}, ${overlayG}, ${overlayB}, 0.07)`); // Increased opacity
+        root.style.setProperty('--hover-light', `rgba(${overlayR}, ${overlayG}, ${overlayB}, 0.05)`); // Increased opacity
+
+        // Add focus state for accessibility
+        root.style.setProperty('--focus-ring', `rgba(${overlayR}, ${overlayG}, ${overlayB}, 0.5)`);
       } else {
-        // Fallback to neutral colors if HSL conversion fails
+        // Fallback to neutral colors if HSL conversion fails, with improved contrast
         root.style.setProperty('--background', '0 0% 100%');
         root.style.setProperty('--foreground', '0 0% 3.9%');
         root.style.setProperty('--card', '0 0% 100%');
         root.style.setProperty('--card-foreground', '0 0% 3.9%');
         root.style.setProperty('--popover', '0 0% 100%');
         root.style.setProperty('--popover-foreground', '0 0% 3.9%');
-        root.style.setProperty('--muted', '0 0% 96.1%');
-        root.style.setProperty('--muted-foreground', '0 0% 45.1%');
-        root.style.setProperty('--border', '0 0% 89.8%');
-        root.style.setProperty('--input', '0 0% 89.8%');
+        root.style.setProperty('--muted', '0 0% 94%'); // Slightly darker for better contrast
+        root.style.setProperty('--muted-foreground', '0 0% 35%'); // Darker for better contrast
+        root.style.setProperty('--border', '0 0% 85%'); // Darker border for better visibility
+        root.style.setProperty('--input', '0 0% 85%'); // Darker input for better visibility
 
-        // Add softer overlay and hover colors for light mode
-        root.style.setProperty('--overlay', 'rgba(0, 0, 0, 0.05)');
-        root.style.setProperty('--hover', 'rgba(0, 0, 0, 0.03)');
-        root.style.setProperty('--hover-light', 'rgba(0, 0, 0, 0.02)');
+        // Add overlay and hover colors for light mode with improved visibility
+        root.style.setProperty('--overlay', 'rgba(0, 0, 0, 0.1)'); // Increased opacity
+        root.style.setProperty('--hover', 'rgba(0, 0, 0, 0.07)'); // Increased opacity
+        root.style.setProperty('--hover-light', 'rgba(0, 0, 0, 0.05)'); // Increased opacity
+
+        // Add focus state for accessibility
+        root.style.setProperty('--focus-ring', 'rgba(0, 0, 0, 0.3)');
       }
     }
 
-    // Update primary and accent colors based on the theme
+    // Update primary and accent colors based on the theme with improved contrast
     const hslValues = hexToHSL(primaryColor);
     if (hslValues) {
       // Set primary and accent colors
@@ -203,17 +212,41 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       // Set ring color to match theme
       root.style.setProperty('--ring', `${hslValues.h} ${hslValues.s}% ${hslValues.l}%`);
 
-      // Add subtle theme colors to other UI elements in light mode
+      // Add theme colors to other UI elements with improved contrast
       if (mode === 'light') {
-        // Create a very subtle secondary color based on the primary
-        const secondarySaturation = Math.min(15, hslValues.s * 0.2);
-        const secondaryLightness = 96; // Very light
+        // Create a more visible secondary color based on the primary
+        const secondarySaturation = Math.min(25, hslValues.s * 0.3); // Increased saturation
+        const secondaryLightness = 94; // Slightly darker for better contrast
         root.style.setProperty('--secondary', `${hslValues.h} ${secondarySaturation}% ${secondaryLightness}%`);
-        root.style.setProperty('--secondary-foreground', `${hslValues.h} ${hslValues.s}% 30%`);
+        root.style.setProperty('--secondary-foreground', `${hslValues.h} ${hslValues.s}% 25%`); // Darker for better contrast
 
-        // Create a subtle destructive color that harmonizes with the theme
+        // Create a more visible destructive color that harmonizes with the theme
         const destructiveHue = (hslValues.h + 180) % 360; // Complementary color
-        root.style.setProperty('--destructive', `${destructiveHue} 84.2% 60.2%`);
+        root.style.setProperty('--destructive', `${destructiveHue} 85% 55%`); // Slightly darker for better contrast
+      } else {
+        // Dark mode secondary colors with improved contrast
+        const secondarySaturation = Math.min(30, hslValues.s * 0.4);
+        const secondaryLightness = 20; // Dark but not too dark
+        root.style.setProperty('--secondary', `${hslValues.h} ${secondarySaturation}% ${secondaryLightness}%`);
+        root.style.setProperty('--secondary-foreground', `${hslValues.h} 15% 85%`); // Light text on dark background
+
+        // Create a visible destructive color for dark mode
+        const destructiveHue = (hslValues.h + 180) % 360; // Complementary color
+        root.style.setProperty('--destructive', `${destructiveHue} 90% 65%`); // Brighter for dark mode
+      }
+
+      // Add interactive element states for better accessibility
+      const interactiveHue = hslValues.h;
+      const interactiveSaturation = Math.min(90, hslValues.s * 1.2);
+
+      // Focus visible state for keyboard navigation
+      root.style.setProperty('--focus-visible', `${interactiveHue} ${interactiveSaturation}% 50%`);
+
+      // Active state for buttons and interactive elements
+      if (mode === 'light') {
+        root.style.setProperty('--active', `${interactiveHue} ${interactiveSaturation}% 40%`);
+      } else {
+        root.style.setProperty('--active', `${interactiveHue} ${interactiveSaturation}% 60%`);
       }
     }
 

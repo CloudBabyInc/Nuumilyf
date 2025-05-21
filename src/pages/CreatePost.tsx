@@ -98,7 +98,7 @@ const CreatePost = () => {
         console.log("Uploading image to:", filePath);
 
         const { error: uploadError, data } = await supabase.storage
-          .from('posts')
+          .from('post-images')
           .upload(filePath, imageFile, {
             cacheControl: '3600',
             upsert: false
@@ -111,7 +111,7 @@ const CreatePost = () => {
 
         // Get public URL
         const { data: publicUrlData } = supabase.storage
-          .from('posts')
+          .from('post-images')
           .getPublicUrl(filePath);
 
         if (publicUrlData) {

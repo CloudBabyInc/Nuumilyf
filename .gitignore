@@ -1,0 +1,30 @@
+# Exclude everything by default
+*
+
+# Include only essential code files
+!src/
+!src/**/*
+!public/
+!public/**/*
+!supabase/
+!supabase/**/*
+!vite.config.ts
+!tsconfig.json
+!tsconfig.node.json
+!tsconfig.app.json
+!tailwind.config.ts
+!postcss.config.js
+!components.json
+!eslint.config.js
+!.gitignore
+
+# Always exclude these files/directories
+node_modules/
+.DS_Store
+*.log
+*.pkl
+*.pdf
+*.patch
+bun.lockb
+package-lock.json
+ZIM-FOOD/

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, addDays, subDays, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -71,17 +71,37 @@ const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
     onDateChange(day);
   };
 
+  // Log meal plans for debugging
+  useEffect(() => {
+    console.log(`MealPlanCalendar: Received ${mealPlans.length} meal plans`);
+    if (mealPlans.length > 0) {
+      console.log('Sample meal plan:', mealPlans[0]);
+    }
+  }, [mealPlans]);
+
   // Filter meal plans for selected date
   const getPlansForDate = (date: Date) => {
     const dateString = format(date, 'yyyy-MM-dd');
-    return mealPlans.filter(plan => plan.date === dateString);
+    console.log(`Looking for meal plans on date: ${dateString}`);
+
+    const plansForDate = mealPlans.filter(plan => plan.date === dateString);
+    console.log(`Found ${plansForDate.length} plans for ${dateString}:`, plansForDate);
+
+    return plansForDate;
   };
 
   const selectedDatePlans = getPlansForDate(selectedDate);
 
   // Get meal plan by type
   const getMealByType = (type: 'breakfast' | 'lunch' | 'dinner' | 'snack') => {
-    return selectedDatePlans.find(plan => plan.meal_type === type);
+    const plan = selectedDatePlans.find(plan => plan.meal_type === type);
+    if (plan) {
+      console.log(`Found ${type} plan:`, plan);
+      if (!plan.meal) {
+        console.warn(`${type} plan has no associated meal data:`, plan);
+      }
+    }
+    return plan;
   };
 
   const breakfastPlan = getMealByType('breakfast');

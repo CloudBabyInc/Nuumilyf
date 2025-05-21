@@ -38,15 +38,15 @@ const ForgotPassword = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img 
-            src="/lovable-uploads/3f006055-b9a4-4322-9a83-427e9aa8b18b.png" 
-            alt="nuumi - For every mom" 
+          <img
+            src="/assets/LOGO.png"
+            alt="nuumi - For every mom"
             className="h-16 mx-auto mb-4"
           />
           <h1 className="text-2xl font-bold">Reset Your Password</h1>
           <p className="text-muted-foreground mt-2">
-            {sent 
-              ? "Check your email for the password reset link" 
+            {sent
+              ? "Check your email for the password reset link"
               : "Enter your email and we'll send you a password reset link"}
           </p>
         </div>
@@ -58,7 +58,7 @@ const ForgotPassword = () => {
               <p className="text-sm text-muted-foreground">
                 If you don't see it in your inbox, please check your spam folder.
               </p>
-              <Button 
+              <Button
                 className="w-full bg-nuumi-pink hover:bg-nuumi-pink/90 mt-4"
                 onClick={() => navigate('/auth')}
               >
@@ -78,7 +78,7 @@ const ForgotPassword = () => {
                   required
                 />
               </div>
-              
+
               <Button
                 type="submit"
                 className="w-full bg-nuumi-pink hover:bg-nuumi-pink/90"
@@ -86,7 +86,7 @@ const ForgotPassword = () => {
               >
                 {loading ? 'Sending...' : 'Send Reset Link'}
               </Button>
-              
+
               <div className="text-center mt-4">
                 <button
                   type="button"

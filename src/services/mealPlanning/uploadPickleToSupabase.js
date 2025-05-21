@@ -11,8 +11,8 @@ import { OpenAI } from 'openai';
 
 // Create a Supabase client with admin privileges for vector operations
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  '0e5ahwrl54ofU9CC5T5n2uCiRIfWNzpo' // API key
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wdcbmuhxmmigveggjsfr.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkY2JtdWh4bW1pZ3ZlZ2dqc2ZyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY0NDMyNSwiZXhwIjoyMDYzMjIwMzI1fQ.shITYPgjbKLBHgDpizQuJ-HU4QHXK-8yKW5TnG9nS0E' // Service role key
 );
 
 // Initialize OpenAI client for creating embeddings
@@ -29,7 +29,7 @@ const processFoodData = async (pickleData) => {
   try {
     // In a real implementation, you would use a Python script or service
     // to process the pickle file. For this example, we'll simulate the output.
-    
+
     // Simulated food items extracted from the pickle file
     const foodItems = [
       {
@@ -60,7 +60,7 @@ const processFoodData = async (pickleData) => {
       },
       // More food items would be extracted from the actual pickle file
     ];
-    
+
     return foodItems;
   } catch (error) {
     console.error('Error processing pickle data:', error);
@@ -76,7 +76,7 @@ const processFoodData = async (pickleData) => {
 const createEmbeddings = async (foodItems) => {
   try {
     const itemsWithEmbeddings = [];
-    
+
     for (const item of foodItems) {
       // Create a text representation of the food item for embedding
       const textToEmbed = `
@@ -87,20 +87,20 @@ const createEmbeddings = async (foodItems) => {
         Meal type: ${item.meal_type.join(', ')}
         Traditional: ${item.traditional ? 'Yes' : 'No'}
       `;
-      
+
       // Generate embedding using OpenAI
       const embeddingResponse = await openai.embeddings.create({
         model: "text-embedding-ada-002",
         input: textToEmbed,
       });
-      
+
       // Add embedding to food item
       itemsWithEmbeddings.push({
         ...item,
         embedding: embeddingResponse.data[0].embedding,
       });
     }
-    
+
     return itemsWithEmbeddings;
   } catch (error) {
     console.error('Error creating embeddings:', error);
@@ -116,7 +116,7 @@ const storeFoodItemsInSupabase = async (foodItemsWithEmbeddings) => {
   try {
     // First, ensure the table exists with vector support
     await supabaseAdmin.rpc('create_zimbabwe_food_table_if_not_exists');
-    
+
     // Insert food items with embeddings
     for (const item of foodItemsWithEmbeddings) {
       const { error } = await supabaseAdmin
@@ -130,12 +130,12 @@ const storeFoodItemsInSupabase = async (foodItemsWithEmbeddings) => {
           traditional: item.traditional,
           embedding: item.embedding,
         });
-      
+
       if (error) {
         console.error('Error inserting food item:', error);
       }
     }
-    
+
     console.log(`Successfully stored ${foodItemsWithEmbeddings.length} food items in Supabase`);
   } catch (error) {
     console.error('Error storing food items in Supabase:', error);
@@ -152,22 +152,22 @@ const uploadPickleFile = async (filePath) => {
   try {
     const fileName = path.basename(filePath);
     const fileData = fs.readFileSync(filePath);
-    
+
     const { data, error } = await supabase.storage
       .from('ai-data')
       .upload(`zimbabwe-foods/${fileName}`, fileData, {
         contentType: 'application/octet-stream',
         upsert: true
       });
-    
+
     if (error) {
       throw error;
     }
-    
+
     const { data: urlData } = supabase.storage
       .from('ai-data')
       .getPublicUrl(`zimbabwe-foods/${fileName}`);
-    
+
     return urlData.publicUrl;
   } catch (error) {
     console.error('Error uploading pickle file:', error);
@@ -184,17 +184,17 @@ export const processAndUploadPickleFile = async (filePath) => {
     // Upload pickle file to Supabase storage
     const fileUrl = await uploadPickleFile(filePath);
     console.log('Pickle file uploaded to:', fileUrl);
-    
+
     // Read and process the pickle file
     const fileData = fs.readFileSync(filePath);
     const foodItems = await processFoodData(fileData);
-    
+
     // Create embeddings for food items
     const foodItemsWithEmbeddings = await createEmbeddings(foodItems);
-    
+
     // Store food items with embeddings in Supabase
     await storeFoodItemsInSupabase(foodItemsWithEmbeddings);
-    
+
     return {
       success: true,
       fileUrl,

@@ -7,7 +7,7 @@ import { MistralAI } from 'https://esm.sh/@mistralai/mistralai@0.0.7'
 
 // Initialize Mistral client
 const mistralClient = new MistralAI({
-  apiKey: Deno.env.get('MISTRAL_API_KEY') || '0e5ahwrl54ofU9CC5T5n2uCiRIfWNzpo',
+  apiKey: Deno.env.get('MISTRAL_API_KEY') || '', // Set this in Supabase Edge Function secrets
 });
 
 // Initialize Supabase client
@@ -39,11 +39,11 @@ serve(async (req) => {
   try {
     // Parse request body
     const { preferences } = await req.json();
-    
+
     if (!preferences) {
       throw new Error('Missing preferences in request body');
     }
-    
+
     const {
       targetUser, // 'mother' or 'child'
       childAge, // in months, if targetUser is 'child'
@@ -52,12 +52,12 @@ serve(async (req) => {
       nutritionGoals, // object with nutrition goals
       preferTraditional // boolean
     } = preferences;
-    
+
     // Get relevant food items from Supabase
     let query = supabase
       .from('zimbabwe_foods')
       .select('*');
-    
+
     // Filter by target user
     if (targetUser === 'child') {
       // Convert child age to appropriate category
@@ -71,29 +71,29 @@ serve(async (req) => {
       } else {
         ageCategory = 'child_12_plus';
       }
-      
+
       query = query.contains('suitable_for', [ageCategory]);
     } else {
       query = query.contains('suitable_for', ['mother']);
     }
-    
+
     // Filter by meal type
     if (mealType) {
       query = query.contains('meal_type', [mealType]);
     }
-    
+
     // Filter by traditional preference
     if (preferTraditional) {
       query = query.eq('traditional', true);
     }
-    
+
     // Execute query
     const { data: foodItems, error } = await query;
-    
+
     if (error) {
       throw error;
     }
-    
+
     // Prepare food items data for Mistral
     const foodItemsData = foodItems.map(item => ({
       name: item.name,
@@ -103,18 +103,18 @@ serve(async (req) => {
       meal_type: item.meal_type,
       traditional: item.traditional
     }));
-    
+
     // Construct prompt for Mistral
-    const systemPrompt = `You are a nutritional expert specializing in meal planning for mothers and children in Zimbabwe. 
+    const systemPrompt = `You are a nutritional expert specializing in meal planning for mothers and children in Zimbabwe.
     Your task is to create a personalized meal plan based on the user's preferences and the available food items.
     The meal plan should be nutritionally balanced, culturally appropriate, and tailored to the specific needs of the target user.
-    
+
     Available food items:
     ${JSON.stringify(foodItemsData, null, 2)}
-    
+
     User preferences:
     ${JSON.stringify(preferences, null, 2)}
-    
+
     Please generate a meal plan with the following structure:
     1. A brief introduction explaining the benefits of the meal plan
     2. A list of meals for the specified meal type (breakfast, lunch, dinner, or snack)
@@ -125,7 +125,7 @@ serve(async (req) => {
        - Nutritional information
        - Benefits for the target user
     4. Tips for preparation and storage
-    
+
     Return the meal plan as a JSON object with the following structure:
     {
       "introduction": "string",
@@ -141,7 +141,7 @@ serve(async (req) => {
       ],
       "tips": ["string"]
     }`;
-    
+
     // Call Mistral API
     const response = await mistralClient.chat({
       model: "mistral-large-latest",
@@ -153,25 +153,25 @@ serve(async (req) => {
       maxTokens: 4000,
       responseFormat: { type: "json_object" }
     });
-    
+
     // Parse and return the meal plan
     const mealPlanContent = response.choices[0].message.content;
     const mealPlan = JSON.parse(mealPlanContent);
-    
+
     // Return the meal plan
     return new Response(JSON.stringify({ mealPlan }), {
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
       },
       status: 200,
     });
-    
+
   } catch (error) {
     console.error('Error generating meal plan:', error);
-    
+
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
       },

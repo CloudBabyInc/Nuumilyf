@@ -29,6 +29,7 @@ const SavedMealPlans: React.FC<SavedMealPlansProps> = ({ onAddToCalendar }) => {
   );
   const [calendarTime, setCalendarTime] = useState<string>('12:00');
   const [calendarDuration, setCalendarDuration] = useState<number>(60); // minutes
+  const [selectedMealType, setSelectedMealType] = useState<string>('dinner'); // Default to dinner
 
   // Fetch current user
   useEffect(() => {
@@ -164,74 +165,12 @@ const SavedMealPlans: React.FC<SavedMealPlansProps> = ({ onAddToCalendar }) => {
 
   return (
     <div className="space-y-6">
-      {/* Calendar Dialog */}
-      <Dialog>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add to Calendar</DialogTitle>
-            <DialogDescription>
-              Schedule this meal in your calendar
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="meal-date">Date</Label>
-              <Input
-                id="meal-date"
-                type="date"
-                value={calendarDate}
-                onChange={(e) => setCalendarDate(e.target.value)}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="meal-time">Time</Label>
-              <Input
-                id="meal-time"
-                type="time"
-                value={calendarTime}
-                onChange={(e) => setCalendarTime(e.target.value)}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="meal-duration">Duration (minutes)</Label>
-              <Input
-                id="meal-duration"
-                type="number"
-                min="15"
-                step="15"
-                value={calendarDuration}
-                onChange={(e) => setCalendarDuration(parseInt(e.target.value))}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => generateCalendarEvent('ical')}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Download iCal
-            </Button>
-            <Button
-              type="button"
-              onClick={() => generateCalendarEvent('google')}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Add to Google Calendar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* We'll use a shared dialog state instead of a component-level Dialog */}
 
       <h2 className="text-xl font-semibold">Your Saved Meal Plans</h2>
-      
+
       {mealPlans.map((plan) => (
-        <Card key={plan.id} className="overflow-hidden">
+        <Card key={plan.id} variant="glass" className="overflow-hidden">
           <CardHeader className="pb-2">
             <div className="flex justify-between items-start">
               <div>
@@ -252,12 +191,12 @@ const SavedMealPlans: React.FC<SavedMealPlansProps> = ({ onAddToCalendar }) => {
               </Button>
             </div>
           </CardHeader>
-          
+
           <CardContent>
             {plan.plan_data && plan.plan_data.meals && (
               <div className="space-y-4">
                 <p className="text-sm">{plan.plan_data.introduction}</p>
-                
+
                 <Accordion type="single" collapsible className="w-full">
                   {plan.plan_data.meals.map((meal, index) => (
                     <AccordionItem key={index} value={`meal-${index}`}>
@@ -270,18 +209,110 @@ const SavedMealPlans: React.FC<SavedMealPlansProps> = ({ onAddToCalendar }) => {
                       <AccordionContent>
                         <div className="space-y-4 pt-2">
                           <div className="flex justify-end">
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleAddToCalendar(plan.id, index)}
-                              >
-                                <Calendar className="h-4 w-4 mr-2" />
-                                Add to Calendar
-                              </Button>
-                            </DialogTrigger>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="calendar-button"
+                                  onClick={() => handleAddToCalendar(plan.id, index)}
+                                >
+                                  <Calendar className="h-4 w-4 mr-2" />
+                                  Schedule Meal
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent variant="glass" className="sm:max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Add to Calendar</DialogTitle>
+                                  <DialogDescription>
+                                    Schedule this meal in your app calendar or export to external calendars
+                                  </DialogDescription>
+                                </DialogHeader>
+
+                                <div className="space-y-4 py-4">
+                                  <div>
+                                    <Label htmlFor="meal-date">Date</Label>
+                                    <Input
+                                      id="meal-date"
+                                      type="date"
+                                      variant="glass"
+                                      className="mt-1.5"
+                                      value={calendarDate}
+                                      onChange={(e) => setCalendarDate(e.target.value)}
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <Label htmlFor="meal-time">Time</Label>
+                                    <Input
+                                      id="meal-time"
+                                      type="time"
+                                      variant="glass"
+                                      className="mt-1.5"
+                                      value={calendarTime}
+                                      onChange={(e) => setCalendarTime(e.target.value)}
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <Label htmlFor="meal-duration">Duration (minutes)</Label>
+                                    <Input
+                                      id="meal-duration"
+                                      type="number"
+                                      variant="glass"
+                                      className="mt-1.5"
+                                      min="15"
+                                      step="15"
+                                      value={calendarDuration}
+                                      onChange={(e) => setCalendarDuration(parseInt(e.target.value))}
+                                    />
+                                  </div>
+                                </div>
+
+                                <DialogFooter>
+                                  <div className="flex flex-col w-full gap-2">
+                                    <Button
+                                      type="button"
+                                      className="bg-nuumi-pink hover:bg-nuumi-pink/90 text-white"
+                                      onClick={() => {
+                                        // Parse date and time
+                                        const [year, month, day] = calendarDate.split('-').map(Number);
+                                        const [hours, minutes] = calendarTime.split(':').map(Number);
+                                        const startDate = new Date(year, month - 1, day, hours, minutes);
+
+                                        // Find the selected plan
+                                        const plan = mealPlans.find(p => p.id === selectedPlanId);
+                                        if (plan && onAddToCalendar) {
+                                          onAddToCalendar(plan, startDate);
+                                          toast.success('Added to app calendar');
+                                        }
+                                      }}
+                                    >
+                                      Add to App Calendar
+                                    </Button>
+
+                                    <div className="flex gap-2">
+                                      <Button
+                                        type="button"
+                                        variant="glass"
+                                        onClick={() => generateCalendarEvent('google')}
+                                      >
+                                        Google Calendar
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="glass"
+                                        onClick={() => generateCalendarEvent('ical')}
+                                      >
+                                        Download iCal
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
                           </div>
-                          
+
                           <div>
                             <h4 className="text-sm font-medium mb-2">Ingredients</h4>
                             <ul className="text-sm space-y-1">
@@ -293,7 +324,7 @@ const SavedMealPlans: React.FC<SavedMealPlansProps> = ({ onAddToCalendar }) => {
                               ))}
                             </ul>
                           </div>
-                          
+
                           <div>
                             <h4 className="text-sm font-medium mb-2">Nutrition Information</h4>
                             <div className="flex flex-wrap gap-2">

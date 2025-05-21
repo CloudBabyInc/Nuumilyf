@@ -201,7 +201,7 @@ export const useStoryCreation = ({ onClose, onSuccess }: StoryCreationHookProps)
           console.log(`Upload attempt ${uploadAttempts}/${maxAttempts}`);
 
           const result = await supabase.storage
-            .from('stories')
+            .from('story-media')
             .upload(filePath, mediaFile, {
               cacheControl: '3600',
               upsert: true // Use upsert to overwrite if file exists
@@ -237,7 +237,7 @@ export const useStoryCreation = ({ onClose, onSuccess }: StoryCreationHookProps)
 
       // Get the public URL
       const { data: publicURLData } = supabase.storage
-        .from('stories')
+        .from('story-media')
         .getPublicUrl(filePath);
 
       if (!publicURLData || !publicURLData.publicUrl) {

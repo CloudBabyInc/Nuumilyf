@@ -38,7 +38,7 @@ const ResetPassword = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -59,7 +59,7 @@ const ResetPassword = () => {
       if (error) throw error;
 
       toast.success('Password has been reset successfully!');
-      
+
       // Sign the user out and redirect to login
       await supabase.auth.signOut();
       navigate('/auth');
@@ -75,9 +75,9 @@ const ResetPassword = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img 
-            src="/lovable-uploads/3f006055-b9a4-4322-9a83-427e9aa8b18b.png" 
-            alt="nuumi - For every mom" 
+          <img
+            src="/assets/LOGO.png"
+            alt="nuumi - For every mom"
             className="h-16 mx-auto mb-4"
           />
           <h1 className="text-2xl font-bold">Set New Password</h1>
@@ -100,7 +100,7 @@ const ResetPassword = () => {
                 minLength={6}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm New Password</Label>
               <Input
@@ -113,7 +113,7 @@ const ResetPassword = () => {
                 minLength={6}
               />
             </div>
-            
+
             <Button
               type="submit"
               className="w-full bg-nuumi-pink hover:bg-nuumi-pink/90"

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { MoreVertical, Clock, Plus, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MoreVertical, Clock, Plus, ChevronDown, Share2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,6 +10,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { generateMealEmojis, createEmojiBanner } from '@/utils/emojiUtils';
+import { toast } from 'sonner';
 
 interface Meal {
   id: string;
@@ -16,6 +19,7 @@ interface Meal {
   description: string;
   image_url?: string;
   emoji?: string;
+  emojis?: string[]; // Array of emojis for the banner
   calories: number;
   protein: number;
   carbs: number;
@@ -36,16 +40,103 @@ interface MealCardProps {
 
 const MealCard: React.FC<MealCardProps> = ({ meal, onAddToMealPlan, selectedDate }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [mealEmojis, setMealEmojis] = useState<string[]>([]);
+
+  // Generate emojis based on ingredients when component mounts
+  useEffect(() => {
+    if (!meal.emojis || meal.emojis.length === 0) {
+      // Extract meal type from tags if available
+      const mealType = meal.tags.find(tag =>
+        ['breakfast', 'lunch', 'dinner', 'snack', 'baby', 'mother'].includes(tag.toLowerCase())
+      );
+
+      const generatedEmojis = generateMealEmojis(
+        meal.ingredients,
+        meal.name,
+        mealType,
+        meal.tags
+      );
+
+      setMealEmojis(generatedEmojis);
+    } else {
+      setMealEmojis(meal.emojis);
+    }
+  }, [meal]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
     return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   };
 
+  // Share meal function
+  const handleShareMeal = async () => {
+    try {
+      // Create a shareable text
+      const shareText = `Check out this delicious meal: ${meal.name}\n\n` +
+        `${createEmojiBanner(mealEmojis)}\n\n` +
+        `Description: ${meal.description}\n\n` +
+        `Ingredients:\n${meal.ingredients.map(i => `- ${i}`).join('\n')}\n\n` +
+        `Instructions:\n${meal.instructions.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}\n\n` +
+        `Nutrition: ${meal.calories} kcal | Protein: ${meal.protein}g | Carbs: ${meal.carbs}g | Fat: ${meal.fat}g`;
+
+      // Use Web Share API if available
+      if (navigator.share) {
+        await navigator.share({
+          title: meal.name,
+          text: shareText
+        });
+        toast.success('Meal shared successfully!');
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(shareText);
+        toast.success('Meal details copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error sharing meal:', error);
+      toast.error('Failed to share meal');
+    }
+  };
+
   return (
-    <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
-      <div className="relative h-48 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-nuumi-pink/10 to-nuumi-pink/30">
-        <div className="text-8xl">{meal.emoji || '🍽️'}</div>
+    <div className="rounded-lg border glass-intense text-card-foreground shadow-sm overflow-hidden">
+      <div className="relative h-48 w-full overflow-hidden flex flex-wrap items-center justify-center bg-gradient-to-br from-nuumi-pink/10 to-nuumi-pink/30">
+        {mealEmojis.length > 0 ? (
+          <div className="flex flex-wrap justify-center items-center gap-2 p-4 text-center">
+            {mealEmojis.map((emoji, index) => (
+              <motion.span
+                key={index}
+                className="text-6xl"
+                initial={{ x: -20, opacity: 0 }}
+                animate={{
+                  x: 0,
+                  opacity: 1
+                }}
+                transition={{
+                  duration: 0.5,
+                  delay: index * 0.1,
+                  ease: "easeOut"
+                }}
+              >
+                {emoji}
+              </motion.span>
+            ))}
+          </div>
+        ) : (
+          <motion.div
+            className="text-8xl"
+            initial={{ x: -20, opacity: 0 }}
+            animate={{
+              x: 0,
+              opacity: 1
+            }}
+            transition={{
+              duration: 0.5,
+              ease: "easeOut"
+            }}
+          >
+            {meal.emoji || '🍽️'}
+          </motion.div>
+        )}
       </div>
 
       <div className="p-4">
@@ -70,6 +161,10 @@ const MealCard: React.FC<MealCardProps> = ({ meal, onAddToMealPlan, selectedDate
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onAddToMealPlan(meal, 'snack')}>
                   Add as Snack
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleShareMeal}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share Meal
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -151,13 +246,22 @@ const MealCard: React.FC<MealCardProps> = ({ meal, onAddToMealPlan, selectedDate
           </div>
         )}
 
-        <Button
-          className="w-full mt-4 bg-nuumi-pink hover:bg-nuumi-pink/90 text-white"
-          onClick={() => onAddToMealPlan(meal, 'lunch')}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add to Today's Plan
-        </Button>
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <Button
+            className="bg-nuumi-pink hover:bg-nuumi-pink/90 text-white"
+            onClick={() => onAddToMealPlan(meal, 'lunch')}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add to Plan
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleShareMeal}
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            Share
+          </Button>
+        </div>
       </div>
     </div>
   );

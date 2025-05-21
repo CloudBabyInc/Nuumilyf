@@ -90,20 +90,23 @@ const AIMealPlanner: React.FC<AIMealPlannerProps> = () => {
 
       console.log('Sending meal plan request with preferences:', preferences);
 
-      // Generate meal plan using Supabase Edge Function
-      const generatedMealPlan = await generateAIMealPlan(preferences);
+      let mealPlanData;
 
-      console.log('Received meal plan:', generatedMealPlan);
+      // Generate meal plan using Supabase Edge Function
+      mealPlanData = await generateAIMealPlan(preferences);
+
+      console.log('Received meal plan:', mealPlanData);
 
       // Validate the meal plan structure
-      if (!generatedMealPlan || !generatedMealPlan.meals || !Array.isArray(generatedMealPlan.meals)) {
-        console.error('Invalid meal plan structure:', generatedMealPlan);
+      if (!mealPlanData || !mealPlanData.meals || !Array.isArray(mealPlanData.meals)) {
+        console.error('Invalid meal plan structure:', mealPlanData);
         toast.error('Received invalid meal plan data. Please try again.');
+        setIsLoading(false);
         return;
       }
 
       // Set meal plan
-      setMealPlan(generatedMealPlan);
+      setMealPlan(mealPlanData);
 
       // Switch to results tab
       setActiveTab('results');
@@ -146,7 +149,7 @@ const AIMealPlanner: React.FC<AIMealPlannerProps> = () => {
         description: meal.benefits,
         nutritionalBenefits: `Calories: ${meal.nutrients.calories}, Protein: ${meal.nutrients.protein}g, Carbs: ${meal.nutrients.carbs}g, Fat: ${meal.nutrients.fat}g`,
         suitabilityReason: `Perfect for ${targetUser === 'mother' ? 'mothers' : 'children'} as a ${mealType}.`,
-        imageEmoji: meal.imageEmoji
+        emojis: meal.emojis || []
       }));
 
       // Set recommendations
@@ -169,11 +172,18 @@ const AIMealPlanner: React.FC<AIMealPlannerProps> = () => {
     try {
       if (!currentUser || !mealPlan) return;
 
+      // Ensure mealType is one of the expected values
+      const validMealType = ['breakfast', 'lunch', 'dinner', 'snack'].includes(mealType.toLowerCase())
+        ? mealType.toLowerCase()
+        : 'dinner';
+
+      console.log(`Saving meal plan with meal type: ${validMealType}`);
+
       // Save meal plan using the service
       await saveMealPlan(mealPlan, {
         userId: currentUser.id,
         targetUser,
-        mealType
+        mealType: validMealType
       });
 
       toast.success('Meal plan saved successfully!');
@@ -194,16 +204,70 @@ const AIMealPlanner: React.FC<AIMealPlannerProps> = () => {
         return;
       }
 
-      // Extract the meal type from the meal plan
-      const mealType = mealPlan.meal_type;
+      // Extract the meal type from the meal plan - ensure it's one of the valid types
+      let mealType = '';
+
+      console.log('Original meal plan object:', mealPlan);
+
+      // First try to get it from meal_type property (this is the most reliable source)
+      if (mealPlan.meal_type) {
+        mealType = mealPlan.meal_type.toLowerCase();
+        console.log('Found meal_type in plan:', mealType);
+      }
+
+      // Normalize the meal type to one of the expected values
+      if (mealType === 'breakfast' || mealType.includes('breakfast')) {
+        mealType = 'breakfast';
+      } else if (mealType === 'lunch' || mealType.includes('lunch')) {
+        mealType = 'lunch';
+      } else if (mealType === 'dinner' || mealType.includes('dinner') || mealType.includes('supper')) {
+        mealType = 'dinner';
+      } else if (mealType === 'snack' || mealType.includes('snack')) {
+        mealType = 'snack';
+      } else {
+        // If still not valid, try to determine from the plan data
+        console.log('Meal type not valid, trying to determine from plan data');
+
+        // Try to extract from the plan name or description
+        if (mealPlan.plan_data && mealPlan.plan_data.introduction) {
+          const intro = mealPlan.plan_data.introduction.toLowerCase();
+          if (intro.includes('breakfast')) {
+            mealType = 'breakfast';
+          } else if (intro.includes('lunch')) {
+            mealType = 'lunch';
+          } else if (intro.includes('dinner') || intro.includes('supper')) {
+            mealType = 'dinner';
+          } else if (intro.includes('snack')) {
+            mealType = 'snack';
+          }
+
+          console.log('Determined meal type from introduction:', mealType);
+        }
+      }
+
+      // Final validation - if we still don't have a valid meal type, default to dinner
+      if (!['breakfast', 'lunch', 'dinner', 'snack'].includes(mealType)) {
+        console.warn(`Invalid meal type: ${mealType}, defaulting to dinner`);
+        mealType = 'dinner'; // Default to dinner if still not valid
+      }
+
+      console.log(`Final normalized meal type to be used: ${mealType}`);
+
+      // Log the meal plan structure for debugging
+      console.log('Full meal plan object:', JSON.stringify(mealPlan, null, 2));
+
+      console.log(`Adding meal plan to calendar for meal type: ${mealType}`);
 
       // Format the date for Supabase
       const dateString = date.toISOString().split('T')[0];
+      console.log(`Adding meal plan to calendar for date: ${dateString}`);
 
       // For each meal in the plan, add it to the calendar
       if (mealPlan.plan_data && mealPlan.plan_data.meals && mealPlan.plan_data.meals.length > 0) {
         // Create a meal entry for each meal in the plan
         for (const meal of mealPlan.plan_data.meals) {
+          console.log(`Processing meal: ${meal.name} for ${mealType}`);
+
           // Create a meal entry
           const { data: mealData, error: mealError } = await supabase
             .from('meals')
@@ -211,10 +275,10 @@ const AIMealPlanner: React.FC<AIMealPlannerProps> = () => {
               name: meal.name,
               description: meal.benefits || 'AI-generated meal',
               emoji: meal.imageEmoji || '🍽️',
-              calories: meal.nutrients.calories || 0,
-              protein: meal.nutrients.protein || 0,
-              carbs: meal.nutrients.carbs || 0,
-              fat: meal.nutrients.fat || 0,
+              calories: Math.round(Number(meal.nutrients.calories) || 0),
+              protein: Math.round(Number(meal.nutrients.protein) || 0),
+              carbs: Math.round(Number(meal.nutrients.carbs) || 0),
+              fat: Math.round(Number(meal.nutrients.fat) || 0),
               prep_time: 30, // Default prep time
               tags: ['ai-generated'],
               ingredients: meal.ingredients || [],
@@ -229,9 +293,11 @@ const AIMealPlanner: React.FC<AIMealPlannerProps> = () => {
             continue;
           }
 
+          console.log(`Created meal with ID: ${mealData.id}`);
+
           // Check if meal plan already exists for this date and meal type
           const { data: existingPlan, error: checkError } = await supabase
-            .from('meal_plans')
+            .from('calendar_entries')
             .select('id')
             .eq('user_id', currentUser.id)
             .eq('date', dateString)
@@ -244,9 +310,10 @@ const AIMealPlanner: React.FC<AIMealPlannerProps> = () => {
           }
 
           if (existingPlan) {
+            console.log(`Updating existing meal plan for ${mealType} on ${dateString}`);
             // Update existing plan
             const { error: updateError } = await supabase
-              .from('meal_plans')
+              .from('calendar_entries')
               .update({ meal_id: mealData.id })
               .eq('id', existingPlan.id);
 
@@ -255,9 +322,10 @@ const AIMealPlanner: React.FC<AIMealPlannerProps> = () => {
               continue;
             }
           } else {
+            console.log(`Creating new meal plan for ${mealType} on ${dateString}`);
             // Create new plan
             const { error: insertError } = await supabase
-              .from('meal_plans')
+              .from('calendar_entries')
               .insert({
                 user_id: currentUser.id,
                 meal_id: mealData.id,
@@ -272,10 +340,24 @@ const AIMealPlanner: React.FC<AIMealPlannerProps> = () => {
           }
         }
 
-        toast.success(`Added meal plan to calendar for ${dateString}`);
+        // Format date for display
+        const formattedDate = new Date(dateString).toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric'
+        });
 
-        // Navigate to the meal planning page to see the calendar
-        navigate('/meal-planning');
+        toast.success(`Added ${mealType} to calendar for ${formattedDate}`);
+
+        // Navigate to the meal planning page with state to indicate refresh is needed
+        // and set the correct date and tab
+        navigate('/meal-planning', {
+          state: {
+            refreshCalendar: true,
+            selectedDate: dateString,
+            activeTab: 'myplan'
+          }
+        });
       }
     } catch (error) {
       console.error('Error adding to calendar:', error);

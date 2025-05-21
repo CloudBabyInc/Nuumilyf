@@ -131,7 +131,7 @@ const CreateMeal = () => {
     const filePath = `meal-images/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('images')
+      .from('meal-images')
       .upload(filePath, imageFile);
 
     if (uploadError) {
@@ -139,7 +139,7 @@ const CreateMeal = () => {
     }
 
     const { data } = supabase.storage
-      .from('images')
+      .from('meal-images')
       .getPublicUrl(filePath);
 
     return data.publicUrl;

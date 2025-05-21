@@ -25,7 +25,7 @@ const sampleProducts: Product[] = [
     id: 1,
     name: "Organic Baby Swaddle Blanket",
     price: 39.99,
-    image: "/lovable-uploads/6f58574a-fde3-4270-b676-58b4ae30e40a.png",
+    image: "https://placehold.co/300x300/e94b9d/ffffff?text=Baby+Swaddle",
     category: "Baby",
     rating: 4.8,
     isFavorite: false,
@@ -35,7 +35,7 @@ const sampleProducts: Product[] = [
     id: 2,
     name: "Postpartum Recovery Kit",
     price: 65.00,
-    image: "/lovable-uploads/1d6249d4-897c-4dae-b4bd-e3111ccdbcf7.png",
+    image: "https://placehold.co/300x300/e94b9d/ffffff?text=Recovery+Kit",
     category: "Self-Care",
     rating: 4.9,
     isFavorite: true,
@@ -45,7 +45,7 @@ const sampleProducts: Product[] = [
     id: 3,
     name: "Nursing Friendly Dress",
     price: 48.50,
-    image: "/lovable-uploads/89e1469f-4969-4cc2-89ce-4d7d1b6c3d77.png",
+    image: "https://placehold.co/300x300/e94b9d/ffffff?text=Nursing+Dress",
     category: "Fashion",
     rating: 4.6,
     isFavorite: false
@@ -54,7 +54,7 @@ const sampleProducts: Product[] = [
     id: 4,
     name: "Baby Sleep Sound Machine",
     price: 32.99,
-    image: "/lovable-uploads/768c6b7e-bbb9-43bd-a5bd-51357ef3c8a6.png",
+    image: "https://placehold.co/300x300/e94b9d/ffffff?text=Sound+Machine",
     category: "Baby",
     rating: 4.7,
     isFavorite: false,
@@ -64,7 +64,7 @@ const sampleProducts: Product[] = [
     id: 5,
     name: "Mom & Baby Matching Set",
     price: 54.99,
-    image: "/lovable-uploads/81d32dd9-43f6-4f6d-9b7e-1f78d2af3502.png",
+    image: "https://placehold.co/300x300/e94b9d/ffffff?text=Matching+Set",
     category: "Fashion",
     rating: 4.5,
     isFavorite: false,
@@ -74,7 +74,7 @@ const sampleProducts: Product[] = [
     id: 6,
     name: "Pregnancy Pillow",
     price: 59.99,
-    image: "/lovable-uploads/449d7c5a-fc0b-41da-aa67-e1e7c8908526.png",
+    image: "https://placehold.co/300x300/e94b9d/ffffff?text=Pregnancy+Pillow",
     category: "Self-Care",
     rating: 4.9,
     isFavorite: true
@@ -86,8 +86,8 @@ const CategoryPill = ({ name, isActive, onClick }: { name: string; isActive: boo
   <button
     onClick={onClick}
     className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-      isActive 
-        ? 'bg-nuumi-pink text-white shadow-md' 
+      isActive
+        ? 'bg-nuumi-pink text-white shadow-md'
         : 'bg-card text-muted-foreground hover:bg-secondary/80'
     }`}
   >
@@ -98,7 +98,7 @@ const CategoryPill = ({ name, isActive, onClick }: { name: string; isActive: boo
 // Product card component
 const ProductCard = ({ product }: { product: Product }) => {
   const [isFavorite, setIsFavorite] = useState(product.isFavorite);
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -108,45 +108,45 @@ const ProductCard = ({ product }: { product: Product }) => {
     >
       <Card className="overflow-hidden border-border/40 hover:border-nuumi-pink/40 transition-all duration-300 hover:shadow-md">
         <div className="relative overflow-hidden aspect-square bg-muted/30">
-          <img 
-            src={product.image} 
-            alt={product.name} 
+          <img
+            src={product.image}
+            alt={product.name}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
           />
-          
+
           {/* Favorite button */}
-          <button 
+          <button
             onClick={() => setIsFavorite(!isFavorite)}
             className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-sm hover:bg-white transition-colors"
           >
-            <Heart 
-              size={16} 
-              className={isFavorite ? "fill-nuumi-pink text-nuumi-pink" : "text-muted-foreground"} 
+            <Heart
+              size={16}
+              className={isFavorite ? "fill-nuumi-pink text-nuumi-pink" : "text-muted-foreground"}
             />
           </button>
-          
+
           {/* New tag or discount */}
           {product.isNew && (
             <div className="absolute top-2 left-2 bg-nuumi-pink text-white text-xs px-2 py-0.5 rounded-full">
               New
             </div>
           )}
-          
+
           {product.discount && (
             <div className="absolute top-2 left-2 bg-secondary text-white text-xs px-2 py-0.5 rounded-full">
               {product.discount}% Off
             </div>
           )}
         </div>
-        
+
         <CardContent className="p-3">
           <div className="flex items-center gap-1 mb-1">
             <Star size={12} className="text-yellow-400 fill-yellow-400" />
             <span className="text-xs text-muted-foreground">{product.rating}</span>
           </div>
-          
+
           <h3 className="font-medium text-sm line-clamp-1 mb-1">{product.name}</h3>
-          
+
           <div className="flex items-center justify-between">
             <div>
               {product.discount ? (
@@ -158,7 +158,7 @@ const ProductCard = ({ product }: { product: Product }) => {
                 <span className="font-semibold text-nuumi-pink">${product.price}</span>
               )}
             </div>
-            
+
             <button className="bg-secondary hover:bg-secondary/80 p-1.5 rounded-full transition-colors">
               <ShoppingBag size={14} className="text-foreground" />
             </button>
@@ -173,18 +173,18 @@ const Marketplace = () => {
   const categories = ["All", "Baby", "Self-Care", "Fashion", "Home", "Nutrition"];
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Filter products based on active category and search query
   const filteredProducts = sampleProducts.filter(product => {
     const matchesCategory = activeCategory === "All" || product.category === activeCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-  
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header title="Marketplace" />
-      
+
       <div className="max-w-md mx-auto px-4 pt-3">
         {/* Featured banner */}
         <div className="w-full h-32 rounded-xl mb-4 overflow-hidden relative">
@@ -203,7 +203,7 @@ const Marketplace = () => {
             </svg>
           </div>
         </div>
-        
+
         {/* Search bar */}
         <div className="relative mb-4">
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -217,7 +217,7 @@ const Marketplace = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
+
         {/* Categories */}
         <div className="mb-4 overflow-x-auto scrollbar-none">
           <div className="flex gap-2 pb-1">
@@ -231,7 +231,7 @@ const Marketplace = () => {
             ))}
           </div>
         </div>
-        
+
         {/* Products grid */}
         <div className="grid grid-cols-2 gap-3 pb-4">
           {filteredProducts.length > 0 ? (
@@ -242,7 +242,7 @@ const Marketplace = () => {
             <div className="col-span-2 py-10 text-center text-muted-foreground">
               <ShoppingBag className="mx-auto mb-2 text-muted-foreground/50" />
               <p>No products found</p>
-              <button 
+              <button
                 onClick={() => {
                   setActiveCategory("All");
                   setSearchQuery("");

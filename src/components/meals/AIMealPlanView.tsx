@@ -246,7 +246,7 @@ const AIMealPlanView: React.FC<AIMealPlanViewProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
               >
-                <Card className="overflow-hidden">
+                <Card variant="glass" className="overflow-hidden">
                   <div
                     className="flex items-center p-4 cursor-pointer"
                     onClick={() => toggleMealExpansion(index)}
@@ -283,6 +283,7 @@ const AIMealPlanView: React.FC<AIMealPlanViewProps> = ({
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="calendar-button"
                                 onClick={() => handleAddToCalendar(index)}
                               >
                                 <Calendar className="h-4 w-4 mr-2" />

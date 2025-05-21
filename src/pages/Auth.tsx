@@ -64,10 +64,10 @@ const Auth = () => {
 
     try {
       console.log('Attempting to sign in with:', { email });
-      
+
       // Clear any existing session first to ensure clean login attempt
       await supabase.auth.signOut({ scope: 'local' });
-      
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -100,9 +100,9 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img 
-            src="/lovable-uploads/3f006055-b9a4-4322-9a83-427e9aa8b18b.png" 
-            alt="nuumi - For every mom" 
+          <img
+            src="/assets/LOGO.png"
+            alt="nuumi - For every mom"
             className="h-16 mx-auto mb-4"
           />
           <h1 className="text-2xl font-bold">
@@ -128,7 +128,7 @@ const Auth = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="displayName">Display Name</Label>
                   <Input
@@ -142,7 +142,7 @@ const Auth = () => {
                 </div>
               </>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -154,7 +154,7 @@ const Auth = () => {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -178,7 +178,7 @@ const Auth = () => {
                 </div>
               )}
             </div>
-            
+
             <Button
               type="submit"
               className="w-full bg-nuumi-pink hover:bg-nuumi-pink/90"
@@ -191,7 +191,7 @@ const Auth = () => {
                 : 'Sign In'}
             </Button>
           </form>
-          
+
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               {isSignUp
@@ -206,7 +206,7 @@ const Auth = () => {
                 {isSignUp ? 'Sign In' : 'Sign Up'}
               </button>
             </p>
-            
+
             <p className="mt-4 text-xs text-muted-foreground">
               <button
                 type="button"
