@@ -88,7 +88,7 @@ const ChatList = ({ currentUserId }: ChatListProps) => {
         // Get the most recent message for this conversation
         const { data: recentMessages, error: messagesError } = await supabase
           .from('messages')
-          .select('content, created_at, sender_id, read')
+          .select('content, created_at, sender_id')
           .eq('conversation_id', conversationId)
           .order('created_at', { ascending: false })
           .limit(1);
@@ -98,17 +98,8 @@ const ChatList = ({ currentUserId }: ChatListProps) => {
           continue;
         }
 
-        // Get unread count
-        const { count: unreadCount, error: countError } = await supabase
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('conversation_id', conversationId)
-          .eq('read', false)
-          .neq('sender_id', currentUserId);
-
-        if (countError) {
-          console.error('Error counting unread messages:', countError);
-        }
+        // Note: Unread count not available without read column
+        const unreadCount = 0;
 
         if (profiles && profiles.length > 0 && recentMessages && recentMessages.length > 0) {
           conversationPreviews.push({

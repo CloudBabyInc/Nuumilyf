@@ -449,36 +449,31 @@ const ConversationPage = () => {
       // Get messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
-        .select('id, content, created_at, sender_id, read')
+        .select('id, content, created_at, sender_id')
         .eq('conversation_id', conversationId)
         .order('created_at');
 
       if (messagesError) {
         console.error('Error fetching messages:', messagesError);
-        toast.error('Failed to load messages');
-      } else if (messagesData) {
+        // Don't show error toast if it's just because there are no messages
+        if (messagesError.code !== 'PGRST116') {
+          toast.error('Failed to load messages');
+        }
+      } else if (messagesData && messagesData.length > 0) {
         setMessages(messagesData.map(msg => ({
           id: msg.id,
           content: msg.content,
           timestamp: msg.created_at,
           senderId: msg.sender_id,
-          status: msg.read ? 'read' : 'delivered'
+          status: 'delivered' // Default status since we don't have read tracking
         })));
+      } else {
+        // No messages yet - this is normal for new conversations
+        setMessages([]);
       }
 
-      // Mark messages as read
-      if (messagesData && messagesData.length > 0) {
-        const unreadMessages = messagesData
-          .filter(msg => !msg.read && msg.sender_id !== session.user.id)
-          .map(msg => msg.id);
-
-        if (unreadMessages.length > 0) {
-          await supabase
-            .from('messages')
-            .update({ read: true })
-            .in('id', unreadMessages);
-        }
-      }
+      // Note: Read tracking is not implemented in the current schema
+      // Messages are considered "delivered" by default
 
       setLoading(false);
     };
@@ -528,41 +523,10 @@ const ConversationPage = () => {
               content: newMessage.content,
               timestamp: newMessage.created_at,
               senderId: newMessage.sender_id,
-              status: newMessage.read ? 'read' : 'delivered',
+              status: 'delivered',
               isNew: true
             }
           ]);
-
-          // Mark message as read immediately since we're viewing the conversation
-          await supabase
-            .from('messages')
-            .update({ read: true })
-            .eq('id', newMessage.id);
-        }
-      )
-      // Listen for message updates (read receipts)
-      .on('postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        (payload) => {
-          const updatedMessage = payload.new as any;
-
-          // Update message status in our local state
-          setMessages(current =>
-            current.map(msg => {
-              if (msg.id === updatedMessage.id) {
-                return {
-                  ...msg,
-                  status: updatedMessage.read ? 'read' : 'delivered'
-                };
-              }
-              return msg;
-            })
-          );
         }
       )
       .subscribe();
@@ -599,7 +563,8 @@ const ConversationPage = () => {
           conversation_id: conversationId,
           sender_id: session.user.id,
           content: content.trim(),
-          read: false
+          topic: 'message', // Required field
+          extension: '' // Required field
         })
         .select('id')
         .single();
@@ -619,18 +584,6 @@ const ConversationPage = () => {
               : msg
           )
         );
-
-        // After a short delay, update to "read" status if the recipient is active
-        // This is a simulation - in a real app, this would be triggered by the recipient
-        setTimeout(() => {
-          setMessages(current =>
-            current.map(msg =>
-              msg.id === data.id && msg.senderId === session.user.id
-                ? { ...msg, status: 'read' }
-                : msg
-            )
-          );
-        }, 2000);
       }
     } catch (err) {
       console.error('Error sending message:', err);
