@@ -143,10 +143,12 @@ const DirectMessagePage = () => {
         }
 
         // Create new conversation if none exists
-        // The table only has id, created_at, and updated_at columns with default values
         const { data: newConversation, error: newConversationError } = await supabase
           .from('conversations')
-          .insert({})  // Empty object - let the database use default values
+          .insert({
+            created_by: session.user.id,
+            title: 'Direct Message' // Add a default title
+          })
           .select('id')
           .single();
 

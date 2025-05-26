@@ -27,7 +27,10 @@ const TestChat = () => {
       console.log('Step 1: Creating conversation...');
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
-        .insert({})
+        .insert({
+          created_by: userId,
+          title: 'Test Conversation'
+        })
         .select('id')
         .single();
 
@@ -101,7 +104,7 @@ const TestChat = () => {
   return (
     <div className="p-4 max-w-md mx-auto">
       <h1 className="text-2xl font-bold mb-4">Test Chat Creation</h1>
-      
+
       <button
         onClick={testCreateConversation}
         disabled={loading}
