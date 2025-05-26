@@ -51,7 +51,7 @@ const Feed = () => {
         .from('stories')
         .select(`
           id,
-          image_url,
+          media_url,
           caption,
           created_at,
           user_id,
@@ -68,7 +68,7 @@ const Feed = () => {
       const storiesWithProfiles = await Promise.all(storiesData.map(async (story) => {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id, display_name, username, avatar_url')
+          .select('id, full_name, username, avatar_url')
           .eq('id', story.user_id)
           .single();
 
@@ -77,23 +77,23 @@ const Feed = () => {
           return null;
         }
 
-        const mediaType = story.image_url && (
-          story.image_url.endsWith('.mp4') ||
-          story.image_url.endsWith('.mov') ||
-          story.image_url.endsWith('.webm')
+        const mediaType = story.media_url && (
+          story.media_url.endsWith('.mp4') ||
+          story.media_url.endsWith('.mov') ||
+          story.media_url.endsWith('.webm')
         ) ? 'video' : 'image';
 
         return {
           id: story.id,
           user: {
             id: profileData.id,
-            name: profileData.display_name || profileData.username,
+            name: profileData.full_name || profileData.username,
             username: profileData.username,
             avatar: profileData.avatar_url
           },
           media: [{
             type: mediaType,
-            url: story.image_url
+            url: story.media_url
           }],
           caption: story.caption,
           createdAt: story.created_at

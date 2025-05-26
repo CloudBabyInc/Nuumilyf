@@ -253,7 +253,7 @@ export const useStoryCreation = ({ onClose, onSuccess }: StoryCreationHookProps)
         .from('stories')
         .insert({
           user_id: session.user.id,
-          image_url: publicUrl,
+          media_url: publicUrl,
           caption: caption.trim() || null,
           // Expires after 24 hours
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
