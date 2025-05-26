@@ -60,7 +60,7 @@ const ProfileStats = ({ posts, followers, following, className, userId, currentU
     // Get profiles for followers
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url')
+      .select('id, username, full_name, avatar_url')
       .in('id', followerIds);
 
     if (profilesError) {
@@ -85,7 +85,7 @@ const ProfileStats = ({ posts, followers, following, className, userId, currentU
     // Format the list
     const formattedList = profiles.map(profile => ({
       id: profile.id,
-      name: profile.display_name || profile.username || 'User',
+      name: profile.full_name || profile.username || 'User',
       username: profile.username || '',
       avatar: profile.avatar_url || undefined,
       isFollowing: userFollowing.includes(profile.id)
@@ -124,7 +124,7 @@ const ProfileStats = ({ posts, followers, following, className, userId, currentU
     // Get profiles for following
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url')
+      .select('id, username, full_name, avatar_url')
       .in('id', followingIds);
 
     if (profilesError) {
@@ -149,7 +149,7 @@ const ProfileStats = ({ posts, followers, following, className, userId, currentU
     // Format the list
     const formattedList = profiles.map(profile => ({
       id: profile.id,
-      name: profile.display_name || profile.username || 'User',
+      name: profile.full_name || profile.username || 'User',
       username: profile.username || '',
       avatar: profile.avatar_url || undefined,
       isFollowing: userFollowing.includes(profile.id)
