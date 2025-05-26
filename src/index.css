@@ -569,13 +569,10 @@
   cursor: not-allowed;
 }
 
-/* Fixed positioning for popups to prevent shifting during hover */
+/* Improved positioning for popups to prevent shifting during hover */
 [data-radix-popper-content-wrapper] {
-  position: fixed !important;
-  transform: none !important;
-  top: auto !important;
-  left: auto !important;
-  transition: none !important;
+  position: absolute !important;
+  z-index: 9999 !important;
 }
 
 /* Prevent hover effects from causing positioning issues with calendar buttons */
@@ -594,14 +591,10 @@
   transition: none !important;
 }
 
-/* Fix dialog positioning */
+/* Improved dialog positioning */
 [data-state="open"][role="dialog"] {
   position: fixed !important;
-  transform: translate(-50%, -50%) !important;
-  top: 50% !important;
-  left: 50% !important;
-  transition: none !important;
-  will-change: transform;
+  z-index: 9999 !important;
 }
 
 /* Prevent any hover effects from affecting dialog positioning */
@@ -609,19 +602,10 @@
   pointer-events: auto;
 }
 
-/* Fix dialog trigger positioning */
+/* Improved dialog trigger positioning */
 [data-radix-dialog-trigger] {
   position: relative;
   z-index: 1;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-font-smoothing: subpixel-antialiased;
-  transition: none !important;
-  will-change: transform;
-}
-
-[data-radix-dialog-trigger]:hover {
-  transform: translateZ(0) !important;
 }
 
 /* Enhanced glass dialog styling */
