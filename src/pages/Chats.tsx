@@ -94,6 +94,18 @@ const DirectMessagePage = () => {
         setLoading(true);
         setError(null);
 
+        // Refresh the session to ensure we have valid auth
+        const { data: refreshedSession, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !refreshedSession.session) {
+          console.error('Session refresh failed:', sessionError);
+          throw new Error('Authentication failed. Please log in again.');
+        }
+
+        console.log('Using refreshed session:', {
+          userId: refreshedSession.session.user.id,
+          email: refreshedSession.session.user.email
+        });
+
         // Check if the user exists
         const { data: userProfile, error: userError } = await supabase
           .from('profiles')
@@ -112,7 +124,7 @@ const DirectMessagePage = () => {
         const { data: myParticipants, error: myParticipantsError } = await supabase
           .from('conversation_participants')
           .select('conversation_id')
-          .eq('user_id', session.user.id);
+          .eq('user_id', refreshedSession.session.user.id);
 
         if (myParticipantsError) throw myParticipantsError;
 
@@ -142,11 +154,30 @@ const DirectMessagePage = () => {
           return;
         }
 
+        // Verify current user exists in profiles table
+        const { data: currentUserProfile, error: currentUserError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', refreshedSession.session.user.id)
+          .single();
+
+        if (currentUserError || !currentUserProfile) {
+          console.error('Current user not found in profiles:', currentUserError);
+          throw new Error('User profile not found. Please try logging out and back in.');
+        }
+
         // Create new conversation if none exists
+        console.log('Creating conversation with user ID:', refreshedSession.session.user.id);
+        console.log('Session details:', {
+          userId: refreshedSession.session.user.id,
+          email: refreshedSession.session.user.email,
+          accessToken: refreshedSession.session.access_token ? 'present' : 'missing'
+        });
+
         const { data: newConversation, error: newConversationError } = await supabase
           .from('conversations')
           .insert({
-            created_by: session.user.id,
+            created_by: refreshedSession.session.user.id,
             title: 'Direct Message' // Add a default title
           })
           .select('id')
@@ -158,16 +189,16 @@ const DirectMessagePage = () => {
         }
 
         // Add current user as participant
-        const { error: currentUserError } = await supabase
+        const { error: participantError } = await supabase
           .from('conversation_participants')
           .insert({
             conversation_id: newConversation.id,
-            user_id: session.user.id
+            user_id: refreshedSession.session.user.id
             // created_at will be set automatically by the database
           });
 
-        if (currentUserError) {
-          console.error('Error adding current user to conversation:', currentUserError);
+        if (participantError) {
+          console.error('Error adding current user to conversation:', participantError);
           throw new Error('Failed to add you to the conversation');
         }
 
@@ -195,7 +226,7 @@ const DirectMessagePage = () => {
             .from('messages')
             .insert({
               conversation_id: newConversation.id,
-              sender_id: session.user.id,
+              sender_id: refreshedSession.session.user.id,
               content: 'Hello! I started this conversation.',
               read: false
             });
