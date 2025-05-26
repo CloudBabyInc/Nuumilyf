@@ -83,7 +83,7 @@ const Profile = () => {
       setIsLoadingStats(true);
 
       const { count: followersCount, error: followersError } = await supabase
-        .from('followers')
+        .from('follows')
         .select('id', { count: 'exact', head: true })
         .eq('following_id', profile.id);
 
@@ -94,7 +94,7 @@ const Profile = () => {
       }
 
       const { count: followingCount, error: followingError } = await supabase
-        .from('followers')
+        .from('follows')
         .select('id', { count: 'exact', head: true })
         .eq('follower_id', profile.id);
 
@@ -117,7 +117,7 @@ const Profile = () => {
 
       if (currentUser?.id) {
         const { data: followData, error: followError } = await supabase
-          .from('followers')
+          .from('follows')
           .select('id')
           .eq('follower_id', currentUser.id)
           .eq('following_id', profile.id)
@@ -271,7 +271,7 @@ const Profile = () => {
       if (isFollowing) {
         // First check if the follow relationship exists
         const { data: existingFollow, error: checkError } = await supabase
-          .from('followers')
+          .from('follows')
           .select('id')
           .eq('follower_id', currentUser.id)
           .eq('following_id', profile.id)
@@ -291,7 +291,7 @@ const Profile = () => {
 
         // Delete the follow relationship
         const { error } = await supabase
-          .from('followers')
+          .from('follows')
           .delete()
           .eq('id', existingFollow.id);
 
@@ -305,7 +305,7 @@ const Profile = () => {
       } else {
         // First check if already following to prevent duplicates
         const { data: existingFollow, error: checkError } = await supabase
-          .from('followers')
+          .from('follows')
           .select('id')
           .eq('follower_id', currentUser.id)
           .eq('following_id', profile.id)
@@ -324,7 +324,7 @@ const Profile = () => {
 
         // Insert new follow relationship
         const { error } = await supabase
-          .from('followers')
+          .from('follows')
           .insert({
             follower_id: currentUser.id,
             following_id: profile.id

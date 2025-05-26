@@ -22,41 +22,41 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     const fetchConnectedUsers = async () => {
       if (!currentUserId) {
         setLoading(false);
         return;
       }
-      
+
       try {
         setLoading(true);
-        
+
         // Get users that the current user is following
         const { data: followingData, error: followingError } = await supabase
-          .from('followers')
+          .from('follows')
           .select('following_id')
           .eq('follower_id', currentUserId);
-          
+
         if (followingError) throw followingError;
-        
+
         if (!followingData || followingData.length === 0) {
           setConnectedUsers([]);
           setLoading(false);
           return;
         }
-        
+
         // Get profile details for each connected user
         const followingIds = followingData.map(item => item.following_id);
-        
+
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, username, display_name, avatar_url, updated_at')
           .in('id', followingIds);
-          
+
         if (profilesError) throw profilesError;
-        
+
         if (profilesData) {
           const formattedUsers: ConnectedUser[] = profilesData.map(profile => ({
             id: profile.id,
@@ -65,7 +65,7 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
             avatarUrl: profile.avatar_url,
             lastSeen: profile.updated_at
           }));
-          
+
           setConnectedUsers(formattedUsers);
         }
       } catch (error) {
@@ -74,20 +74,20 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
         setLoading(false);
       }
     };
-    
+
     fetchConnectedUsers();
   }, [currentUserId]);
-  
+
   const startChat = (userId: string) => {
     if (!currentUserId) {
       navigate('/auth');
       return;
     }
-    
+
     // Use the direct route that handles conversation creation
     navigate(`/chats/user/${userId}`);
   };
-  
+
   if (loading) {
     return (
       <div className="mt-4 space-y-4">
@@ -103,7 +103,7 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
       </div>
     );
   }
-  
+
   if (!currentUserId) {
     return (
       <div className="text-center py-6">
@@ -111,12 +111,12 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
       </div>
     );
   }
-  
+
   if (connectedUsers.length === 0) {
     return (
       <div className="text-center py-6">
         <p className="text-muted-foreground">You haven't connected with anyone yet</p>
-        <button 
+        <button
           className="mt-2 text-nuumi-pink font-medium"
           onClick={() => navigate('/feed')}
         >
@@ -125,19 +125,19 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
       </div>
     );
   }
-  
+
   return (
     <div className="divide-y divide-border">
       {connectedUsers.map(user => (
-        <div 
-          key={user.id} 
+        <div
+          key={user.id}
           className="flex items-center py-3 px-4 hover:bg-secondary/30 transition-colors cursor-pointer"
           onClick={() => startChat(user.id)}
         >
-          <Avatar 
-            src={user.avatarUrl || undefined} 
+          <Avatar
+            src={user.avatarUrl || undefined}
             alt={user.displayName}
-            status="online" 
+            status="online"
           />
           <div className="ml-3">
             <h4 className="font-medium">{user.displayName}</h4>

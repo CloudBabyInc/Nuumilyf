@@ -54,7 +54,7 @@ const ProfileActions = ({
       if (isConnected) {
         // First check if the follow relationship exists
         const { data: existingFollow, error: checkError } = await supabase
-          .from('followers')
+          .from('follows')
           .select('id')
           .eq('follower_id', session.session.user.id)
           .eq('following_id', userId)
@@ -74,7 +74,7 @@ const ProfileActions = ({
 
         // Delete the follow relationship by ID for more precision
         const { error } = await supabase
-          .from('followers')
+          .from('follows')
           .delete()
           .eq('id', existingFollow.id);
 
@@ -88,7 +88,7 @@ const ProfileActions = ({
       } else {
         // Connect logic - first check if the connection already exists
         const { data: existingFollow, error: checkError } = await supabase
-          .from('followers')
+          .from('follows')
           .select('id')
           .eq('follower_id', session.session.user.id)
           .eq('following_id', userId)
@@ -108,7 +108,7 @@ const ProfileActions = ({
 
         // Insert new follow relationship
         const { error } = await supabase
-          .from('followers')
+          .from('follows')
           .insert({
             follower_id: session.session.user.id,
             following_id: userId
