@@ -101,9 +101,16 @@ const DirectMessagePage = () => {
           throw new Error('Authentication failed. Please log in again.');
         }
 
+        // Explicitly set the session to ensure auth headers are sent
+        await supabase.auth.setSession({
+          access_token: refreshedSession.session.access_token,
+          refresh_token: refreshedSession.session.refresh_token
+        });
+
         console.log('Using refreshed session:', {
           userId: refreshedSession.session.user.id,
-          email: refreshedSession.session.user.email
+          email: refreshedSession.session.user.email,
+          accessToken: refreshedSession.session.access_token ? 'present' : 'missing'
         });
 
         // Check if the user exists
