@@ -358,14 +358,14 @@ const ConversationPage = () => {
             // Get recipient profile using the stored ID
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
-              .select('id, display_name, username, avatar_url')
+              .select('id, full_name, username, avatar_url')
               .eq('id', storedUserId)
               .single();
 
             if (profile && !profileError) {
               setRecipient({
                 id: profile.id,
-                name: profile.display_name || profile.username || 'User',
+                name: profile.full_name || profile.username || 'User',
                 avatar: profile.avatar_url || undefined,
                 isOnline: false
               });
@@ -389,7 +389,7 @@ const ConversationPage = () => {
         // Get recipient profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('id, display_name, username, avatar_url')
+          .select('id, full_name, username, avatar_url')
           .eq('id', recipientId)
           .single();
 
@@ -399,7 +399,7 @@ const ConversationPage = () => {
         } else if (profile) {
           setRecipient({
             id: profile.id,
-            name: profile.display_name || profile.username || 'Anonymous',
+            name: profile.full_name || profile.username || 'Anonymous',
             avatar: profile.avatar_url || undefined,
             isOnline: false // Will update with presence later
           });

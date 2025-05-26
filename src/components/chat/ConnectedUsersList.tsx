@@ -52,7 +52,7 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
 
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, username, display_name, avatar_url, updated_at')
+          .select('id, username, full_name, avatar_url, updated_at')
           .in('id', followingIds);
 
         if (profilesError) throw profilesError;
@@ -61,7 +61,7 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
           const formattedUsers: ConnectedUser[] = profilesData.map(profile => ({
             id: profile.id,
             username: profile.username || 'anonymous',
-            displayName: profile.display_name || profile.username || 'Anonymous',
+            displayName: profile.full_name || profile.username || 'Anonymous',
             avatarUrl: profile.avatar_url,
             lastSeen: profile.updated_at
           }));
