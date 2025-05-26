@@ -16,7 +16,7 @@ export interface Notification {
   created_at: string;
   actor?: {
     username: string | null;
-    display_name: string | null;
+    full_name: string | null;
     avatar_url: string | null;
   };
 }
@@ -31,7 +31,7 @@ export function useNotifications() {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
         setNotifications([]);
@@ -49,7 +49,7 @@ export function useNotifications() {
 
       // Type assertion to help TypeScript understand the structure
       const typedData = data as unknown as Notification[];
-      
+
       setNotifications(typedData || []);
       setUnreadCount((typedData || []).filter(n => !n.read).length);
     } catch (err) {
@@ -71,7 +71,7 @@ export function useNotifications() {
       if (updateError) throw updateError;
 
       // Update local state
-      setNotifications(prev => prev.map(n => 
+      setNotifications(prev => prev.map(n =>
         n.id === notificationId ? { ...n, read: true } : n
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
@@ -122,11 +122,11 @@ export function useNotifications() {
           filter: `user_id=eq.${session.session.user.id}`,
         }, async (payload) => {
           console.log('New notification:', payload);
-          
+
           // When a new notification is inserted, fetch the actor data
           const { data: actorData } = await supabase
             .from('profiles')
-            .select('username, display_name, avatar_url')
+            .select('username, full_name, avatar_url')
             .eq('id', payload.new.actor_id)
             .single();
 
@@ -135,10 +135,10 @@ export function useNotifications() {
             ...payload.new,
             actor: actorData || null
           } as Notification;
-          
+
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
-          
+
           // Show toast for the new notification
           toast.success('New notification', {
             description: getNotificationText(newNotification)
@@ -170,8 +170,8 @@ export function useNotifications() {
 
 // Helper function to generate notification text based on type
 export function getNotificationText(notification: Notification): string {
-  const actorName = notification.actor?.display_name || notification.actor?.username || 'Someone';
-  
+  const actorName = notification.actor?.full_name || notification.actor?.username || 'Someone';
+
   switch (notification.type) {
     case 'like':
       return `${actorName} liked your post`;
