@@ -23,6 +23,7 @@ import TestChat from "./pages/TestChat";
 import MealPlanning from "./pages/MealPlanning";
 import CreateMeal from "./pages/CreateMeal";
 import ThemeProvider from "./components/theme/ThemeProvider";
+import PresenceProvider from "./components/providers/PresenceProvider";
 
 // Import global CSS for comments
 import "./components/comments/comments.css";
@@ -86,11 +87,13 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <ThemeProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <PresenceProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </PresenceProvider>
       </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>

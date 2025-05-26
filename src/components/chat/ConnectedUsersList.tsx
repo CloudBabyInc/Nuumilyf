@@ -137,7 +137,8 @@ const ConnectedUsersList: React.FC<ConnectedUsersListProps> = ({ currentUserId }
           <Avatar
             src={user.avatarUrl || undefined}
             alt={user.displayName}
-            status="online"
+            userId={user.id}
+            showPresence={true}
           />
           <div className="ml-3">
             <h4 className="font-medium">{user.displayName}</h4>

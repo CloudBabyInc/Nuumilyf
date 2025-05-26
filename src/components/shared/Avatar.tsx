@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import OnlineStatusIndicator from './OnlineStatusIndicator';
 
 interface AvatarProps {
   src?: string;
@@ -10,6 +11,8 @@ interface AvatarProps {
   className?: string;
   onClick?: (event: React.MouseEvent) => void;
   showAddButton?: boolean;
+  userId?: string; // For real-time presence
+  showPresence?: boolean; // Whether to show real-time presence
 }
 
 const Avatar = ({
@@ -19,7 +22,9 @@ const Avatar = ({
   status,
   className,
   onClick,
-  showAddButton = false
+  showAddButton = false,
+  userId,
+  showPresence = false
 }: AvatarProps) => {
   const sizeClasses = {
     sm: 'h-8 w-8',
@@ -65,7 +70,15 @@ const Avatar = ({
           </div>
         )}
       </div>
-      {status && (
+      {/* Show real-time presence or static status */}
+      {showPresence && userId ? (
+        <div className="absolute bottom-0 right-0">
+          <OnlineStatusIndicator
+            userId={userId}
+            size={size === 'sm' ? 'sm' : 'md'}
+          />
+        </div>
+      ) : status && (
         <span
           className={cn(
             'absolute bottom-0 right-0 rounded-full border-2 border-background',
