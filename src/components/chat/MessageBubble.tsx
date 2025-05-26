@@ -42,14 +42,31 @@ const MessageBubble = ({
 
   // Status icon animation variants
   const statusVariants = {
-    sent: { scale: 1, opacity: 1 },
-    delivered: { scale: [0.5, 1.2, 1], opacity: 1, transition: { duration: 0.3 } },
-    read: {
-      scale: [0.5, 1.2, 1],
+    sent: {
+      scale: 1,
+      opacity: 1,
+      transition: { duration: 0.2, ease: "easeOut" }
+    },
+    delivered: {
+      scale: 1,
       opacity: 1,
       transition: {
-        duration: 0.3,
-        delay: 0.1
+        duration: 0.4,
+        ease: "easeOut",
+        type: "spring",
+        stiffness: 300,
+        damping: 20
+      }
+    },
+    read: {
+      scale: 1,
+      opacity: 1,
+      transition: {
+        duration: 0.4,
+        ease: "easeOut",
+        type: "spring",
+        stiffness: 300,
+        damping: 20
       }
     }
   };
@@ -63,6 +80,8 @@ const MessageBubble = ({
       initial="initial"
       animate="animate"
       variants={containerVariants}
+      layout
+      layoutId={`message-${timestamp}-${content.slice(0, 10)}`}
     >
       <motion.div
         className={cn(

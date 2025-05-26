@@ -23,27 +23,53 @@ const MessageList = ({ messages, currentUserId, isLoading = false }: MessageList
   const bottomRef = useRef<HTMLDivElement>(null);
   const [renderedMessages, setRenderedMessages] = useState<Message[]>([]);
 
-  // Update rendered messages with isNew flag for new messages
+  // Update rendered messages with smooth transitions
   useEffect(() => {
     if (messages.length > renderedMessages.length) {
+      // New messages added
       const newMessages = messages.map((msg, index) => {
-        // Mark as new if it's a new message (not in renderedMessages)
-        const isNew = index >= renderedMessages.length;
-        return { ...msg, isNew };
+        const existingMsg = renderedMessages.find(m =>
+          m.id === msg.id ||
+          (m.id.startsWith('temp-') && msg.content === m.content && msg.senderId === m.senderId)
+        );
+
+        return {
+          ...msg,
+          isNew: !existingMsg && index >= renderedMessages.length
+        };
       });
       setRenderedMessages(newMessages);
-    } else {
-      // Just update status for existing messages
-      const updatedMessages = messages.map((msg, index) => {
-        const existingMsg = renderedMessages.find(m => m.id === msg.id);
+    } else if (messages.length === renderedMessages.length) {
+      // Update existing messages (status changes, ID updates)
+      const updatedMessages = messages.map(msg => {
+        const existingMsg = renderedMessages.find(m =>
+          m.id === msg.id ||
+          (m.id.startsWith('temp-') && msg.content === m.content && msg.senderId === m.senderId)
+        );
+
         return {
           ...msg,
           isNew: existingMsg?.isNew || false
         };
       });
-      setRenderedMessages(updatedMessages);
+
+      // Only update if there are actual changes to prevent unnecessary re-renders
+      const hasChanges = updatedMessages.some((msg, index) => {
+        const existing = renderedMessages[index];
+        return !existing ||
+               msg.id !== existing.id ||
+               msg.status !== existing.status ||
+               msg.content !== existing.content;
+      });
+
+      if (hasChanges) {
+        setRenderedMessages(updatedMessages);
+      }
+    } else {
+      // Messages removed (error cases)
+      setRenderedMessages(messages.map(msg => ({ ...msg, isNew: false })));
     }
-  }, [messages, renderedMessages]);
+  }, [messages]);
 
   useEffect(() => {
     // Scroll to bottom when messages change
@@ -99,17 +125,24 @@ const MessageList = ({ messages, currentUserId, isLoading = false }: MessageList
                 {date === new Date().toLocaleDateString() ? 'Today' : date}
               </span>
             </motion.div>
-            <AnimatePresence>
-              {messagesGroup.map(message => (
-                <MessageBubble
-                  key={message.id}
-                  content={message.content}
-                  timestamp={message.timestamp}
-                  isSender={message.senderId === currentUserId}
-                  status={message.status}
-                  isNew={message.isNew}
-                />
-              ))}
+            <AnimatePresence mode="popLayout">
+              {messagesGroup.map((message, index) => {
+                // Create a stable key that doesn't change when temp ID becomes real ID
+                const stableKey = message.id.startsWith('temp-')
+                  ? `${message.senderId}-${message.timestamp}-${index}`
+                  : message.id;
+
+                return (
+                  <MessageBubble
+                    key={stableKey}
+                    content={message.content}
+                    timestamp={message.timestamp}
+                    isSender={message.senderId === currentUserId}
+                    status={message.status}
+                    isNew={message.isNew}
+                  />
+                );
+              })}
             </AnimatePresence>
           </div>
         ))}
