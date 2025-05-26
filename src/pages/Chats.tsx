@@ -448,7 +448,7 @@ const ConversationPage = () => {
       // Get messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
-        .select('id, content, created_at, sender_id')
+        .select('id, content, created_at, sender_id, is_deleted, is_edited, original_content')
         .eq('conversation_id', conversationId)
         .order('created_at');
 
@@ -464,7 +464,9 @@ const ConversationPage = () => {
           content: msg.content,
           timestamp: msg.created_at,
           senderId: msg.sender_id,
-          status: 'delivered' // Default status since we don't have read tracking
+          status: 'delivered', // Default status since we don't have read tracking
+          isDeleted: msg.is_deleted || false,
+          isEdited: msg.is_edited || false
         })));
       } else {
         // No messages yet - this is normal for new conversations
@@ -534,6 +536,37 @@ const ConversationPage = () => {
       supabase.removeChannel(channel);
     };
   }, [conversationId, session, navigate]);
+
+  // Handle message editing
+  const handleEditMessage = (messageId: string, newContent: string) => {
+    setMessages(current =>
+      current.map(msg =>
+        msg.id === messageId
+          ? { ...msg, content: newContent, isEdited: true }
+          : msg
+      )
+    );
+  };
+
+  // Handle message unsending
+  const handleUnsendMessage = (messageId: string) => {
+    setMessages(current =>
+      current.map(msg =>
+        msg.id === messageId
+          ? { ...msg, content: 'This message was unsent', isDeleted: true }
+          : msg
+      )
+    );
+  };
+
+  // Handle reply to message
+  const handleReplyToMessage = (content: string) => {
+    // For now, just focus the input and add a reply prefix
+    // You could extend this to show a reply preview
+    const replyText = `Replying to: "${content.slice(0, 50)}${content.length > 50 ? '...' : ''}"`;
+    console.log(replyText); // For now, just log it
+    // TODO: Implement reply UI
+  };
 
   const handleSendMessage = async (content: string) => {
     if (!session || !conversationId || !content.trim()) return;
@@ -613,6 +646,9 @@ const ConversationPage = () => {
             <MessageList
               messages={messages}
               currentUserId={session?.user?.id}
+              onEditMessage={handleEditMessage}
+              onUnsendMessage={handleUnsendMessage}
+              onReplyToMessage={handleReplyToMessage}
             />
           </div>
 

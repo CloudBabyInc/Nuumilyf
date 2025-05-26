@@ -11,15 +11,27 @@ interface Message {
   senderId: string;
   status?: 'sent' | 'delivered' | 'read';
   isNew?: boolean;
+  isDeleted?: boolean;
+  isEdited?: boolean;
 }
 
 interface MessageListProps {
   messages: Message[];
   currentUserId?: string;
   isLoading?: boolean;
+  onEditMessage?: (messageId: string, newContent: string) => void;
+  onUnsendMessage?: (messageId: string) => void;
+  onReplyToMessage?: (content: string) => void;
 }
 
-const MessageList = ({ messages, currentUserId, isLoading = false }: MessageListProps) => {
+const MessageList = ({
+  messages,
+  currentUserId,
+  isLoading = false,
+  onEditMessage,
+  onUnsendMessage,
+  onReplyToMessage
+}: MessageListProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [renderedMessages, setRenderedMessages] = useState<Message[]>([]);
 
@@ -135,11 +147,19 @@ const MessageList = ({ messages, currentUserId, isLoading = false }: MessageList
                 return (
                   <MessageBubble
                     key={stableKey}
+                    messageId={message.id}
                     content={message.content}
                     timestamp={message.timestamp}
                     isSender={message.senderId === currentUserId}
+                    senderId={message.senderId}
+                    currentUserId={currentUserId || ''}
                     status={message.status}
                     isNew={message.isNew}
+                    isDeleted={message.isDeleted}
+                    isEdited={message.isEdited}
+                    onEdit={onEditMessage}
+                    onUnsend={onUnsendMessage}
+                    onReply={onReplyToMessage}
                   />
                 );
               })}

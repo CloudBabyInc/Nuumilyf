@@ -4,21 +4,38 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Check, CheckCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
+import MessageActions from './MessageActions';
 
 interface MessageBubbleProps {
+  messageId: string;
   content: string;
   timestamp: string;
   isSender: boolean;
+  senderId: string;
+  currentUserId: string;
   status?: 'sent' | 'delivered' | 'read';
   isNew?: boolean;
+  isDeleted?: boolean;
+  isEdited?: boolean;
+  onEdit?: (messageId: string, newContent: string) => void;
+  onUnsend?: (messageId: string) => void;
+  onReply?: (content: string) => void;
 }
 
 const MessageBubble = ({
+  messageId,
   content,
   timestamp,
   isSender,
+  senderId,
+  currentUserId,
   status = 'sent',
-  isNew = false
+  isNew = false,
+  isDeleted = false,
+  isEdited = false,
+  onEdit,
+  onUnsend,
+  onReply
 }: MessageBubbleProps) => {
   // Animation variants
   const containerVariants = {
@@ -71,10 +88,36 @@ const MessageBubble = ({
     }
   };
 
+  // Handle deleted messages
+  if (isDeleted) {
+    return (
+      <motion.div
+        className={cn(
+          "max-w-[80%] mb-3 flex flex-col opacity-60",
+          isSender ? "ml-auto items-end" : "mr-auto items-start"
+        )}
+        initial="initial"
+        animate="animate"
+        variants={containerVariants}
+        layout
+        layoutId={`message-${timestamp}-${content.slice(0, 10)}`}
+      >
+        <div className="px-4 py-2 rounded-2xl bg-secondary/50 text-muted-foreground italic text-sm">
+          This message was unsent
+        </div>
+        <div className="flex items-center mt-1 text-xs text-muted-foreground">
+          <span>
+            {formatDistanceToNow(new Date(timestamp), { addSuffix: true })}
+          </span>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       className={cn(
-        "max-w-[80%] mb-3 flex flex-col",
+        "max-w-[80%] mb-3 flex flex-col group",
         isSender ? "ml-auto items-end" : "mr-auto items-start"
       )}
       initial="initial"
@@ -83,18 +126,37 @@ const MessageBubble = ({
       layout
       layoutId={`message-${timestamp}-${content.slice(0, 10)}`}
     >
-      <motion.div
-        className={cn(
-          "px-4 py-2 rounded-2xl break-words",
-          isSender
-            ? "bg-nuumi-pink text-white rounded-br-none"
-            : "bg-secondary text-foreground rounded-bl-none"
-        )}
-        whileHover={{ scale: 1.02 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      >
-        {content}
-      </motion.div>
+      <div className="flex items-start gap-2 w-full">
+        <motion.div
+          className={cn(
+            "px-4 py-2 rounded-2xl break-words flex-1",
+            isSender
+              ? "bg-nuumi-pink text-white rounded-br-none"
+              : "bg-secondary text-foreground rounded-bl-none"
+          )}
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        >
+          {content}
+          {isEdited && (
+            <span className="text-xs opacity-70 ml-2">(edited)</span>
+          )}
+        </motion.div>
+
+        {/* Message Actions */}
+        <MessageActions
+          messageId={messageId}
+          content={content}
+          senderId={senderId}
+          currentUserId={currentUserId}
+          createdAt={timestamp}
+          isDeleted={isDeleted}
+          isEdited={isEdited}
+          onEdit={onEdit}
+          onUnsend={onUnsend}
+          onReply={onReply}
+        />
+      </div>
 
       <div className="flex items-center mt-1 text-xs text-muted-foreground">
         <span>
