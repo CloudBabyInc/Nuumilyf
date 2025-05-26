@@ -38,14 +38,30 @@ const ProfileActions = ({
   }, [isFollowing]);
 
   const handleConnectClick = async () => {
-    if (!userId) return;
+    if (!userId) {
+      console.error('No userId provided');
+      toast.error('User ID not found');
+      return;
+    }
 
-    const { data: session } = await supabase.auth.getSession();
+    const { data: session, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      toast.error('Authentication error');
+      return;
+    }
+
     if (!session.session) {
       toast.error('Please sign in to connect with other users');
       navigate('/auth');
       return;
     }
+
+    console.log('Attempting to connect:', {
+      currentUserId: session.session.user.id,
+      targetUserId: userId,
+      isConnected: isConnected
+    });
 
     setIsConnecting(true);
     const loadingToast = toast.loading(isConnected ? 'Disconnecting...' : 'Connecting...');
@@ -124,6 +140,14 @@ const ProfileActions = ({
       }
     } catch (error: any) {
       console.error('Error toggling connection:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        userId: userId,
+        sessionUserId: session.session?.user?.id
+      });
       toast.dismiss(loadingToast);
 
       // More specific error message
@@ -135,6 +159,8 @@ const ProfileActions = ({
       } else if (error.code === '23503') {
         // Foreign key violation
         toast.error('User not found');
+      } else if (error.message) {
+        toast.error(`Connection failed: ${error.message}`);
       } else {
         toast.error('Failed to update connection status');
       }
