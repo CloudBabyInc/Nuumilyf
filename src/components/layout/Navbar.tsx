@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import OnlineUsersList from '@/components/shared/OnlineUsersList';
 
 interface NavItemProps {
   emoji: string;
@@ -77,15 +76,7 @@ const Navbar = () => {
   };
 
   return (
-    <>
-      {/* Online Users List at the top */}
-      <div className="fixed top-4 left-4 right-4 z-40 pointer-events-auto">
-        <div className="bg-card/90 backdrop-blur-xl border border-border/40 shadow-lg rounded-full px-4 py-2">
-          <OnlineUsersList maxVisible={8} />
-        </div>
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 flex flex-col items-center pb-1 z-50 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 flex flex-col items-center pb-1 z-50 pointer-events-none">
       {/* Backdrop for action menu */}
       <AnimatePresence>
         {actionMenuOpen && (
@@ -178,7 +169,6 @@ const Navbar = () => {
         </div>
       </nav>
     </div>
-    </>
   );
 };
 

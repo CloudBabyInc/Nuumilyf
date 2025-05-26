@@ -166,7 +166,7 @@ export function usePresence() {
     return presenceState[userId]?.lastSeen || null;
   };
 
-  // Get online users count
+  // Get online users count (for internal use only)
   const getOnlineUsersCount = (): number => {
     return Object.values(presenceState).filter(user => user.status === 'online').length;
   };
