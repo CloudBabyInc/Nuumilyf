@@ -310,6 +310,10 @@ const PostView = () => {
             onComment={() => {}}
             onRepost={() => {}}
             onShare={() => handleShare(post.id)}
+            onDelete={() => {}}
+            onHide={() => {}}
+            onEdit={() => {}}
+            onReport={() => {}}
           />
         ) : null}
       </div>

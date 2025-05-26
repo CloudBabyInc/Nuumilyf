@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +14,7 @@ import useAuth from '@/hooks/useAuth';
 const CreatePost = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [content, setContent] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -135,6 +137,10 @@ const CreatePost = () => {
       }
 
       toast.success('Post created successfully');
+
+      // Invalidate posts cache to refresh feed
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+
       navigate('/feed');
     } catch (error) {
       console.error('Error creating post:', error);

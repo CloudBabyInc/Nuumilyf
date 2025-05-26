@@ -1,11 +1,29 @@
 
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageSquare, Repeat2, Send } from 'lucide-react';
+import { Heart, MessageSquare, Repeat2, Send, MoreHorizontal, Trash2, EyeOff, Edit3, Flag, Copy, Share } from 'lucide-react';
 import Avatar from './Avatar';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommentModal from '@/components/comments/CommentModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 interface PostProps {
   id: string; // Post ID
@@ -33,6 +51,10 @@ interface PostProps {
   onComment?: () => void;
   onRepost?: () => void;
   onShare?: () => void;
+  onDelete?: () => void;
+  onHide?: () => void;
+  onEdit?: () => void;
+  onReport?: () => void;
 }
 
 const Post = ({
@@ -48,7 +70,11 @@ const Post = ({
   onLike,
   onComment,
   onRepost,
-  onShare
+  onShare,
+  onDelete,
+  onHide,
+  onEdit,
+  onReport
 }: PostProps) => {
   const navigate = useNavigate();
 
@@ -64,6 +90,10 @@ const Post = ({
 
   // Comment modal state
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+
+  // Post menu state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
 
   // Debug log for currentUser
   useEffect(() => {
@@ -110,6 +140,50 @@ const Post = ({
     navigate(`/profile/${author.id}`);
   };
 
+  // Post menu handlers
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = () => {
+    onDelete?.();
+    setShowDeleteDialog(false);
+    toast.success('Post deleted successfully');
+  };
+
+  const handleHide = () => {
+    setIsHidden(true);
+    onHide?.();
+    toast.success('Post hidden from your feed');
+  };
+
+  const handleEdit = () => {
+    onEdit?.();
+    toast.info('Edit functionality coming soon');
+  };
+
+  const handleReport = () => {
+    onReport?.();
+    toast.success('Post reported. Thank you for helping keep our community safe.');
+  };
+
+  const handleCopyLink = () => {
+    const postUrl = `${window.location.origin}/post/${id}`;
+    navigator.clipboard.writeText(postUrl).then(() => {
+      toast.success('Post link copied to clipboard');
+    }).catch(() => {
+      toast.error('Failed to copy link');
+    });
+  };
+
+  // Check if current user is the post author
+  const isOwnPost = currentUser?.id === author.id;
+
+  // Don't render if hidden
+  if (isHidden) {
+    return null;
+  }
+
   return (
     <div className="bg-card rounded-xl p-4 mb-3 animate-fade-in">
       <div className="flex items-start mb-3">
@@ -120,7 +194,7 @@ const Post = ({
           onClick={handleProfileClick}
           className="cursor-pointer"
         />
-        <div className="ml-3 flex flex-col">
+        <div className="ml-3 flex flex-col flex-1">
           <div className="flex items-center">
             <h4
               className="font-semibold text-foreground cursor-pointer hover:underline"
@@ -144,6 +218,76 @@ const Post = ({
             @{author.username}
           </span>
         </div>
+
+        {/* Post Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }}
+              className="p-2 rounded-full hover:bg-secondary/50 transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <MoreHorizontal size={18} />
+            </motion.button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-48 glass-dialog animate-scale-in"
+            sideOffset={5}
+          >
+            {isOwnPost ? (
+              <>
+                <DropdownMenuItem
+                  onClick={handleEdit}
+                  className="cursor-pointer hover:bg-secondary/50 transition-colors"
+                >
+                  <Edit3 className="mr-2 h-4 w-4" />
+                  Edit post
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  className="cursor-pointer text-red-500 hover:text-red-600 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete post
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem
+                  onClick={handleHide}
+                  className="cursor-pointer hover:bg-secondary/50 transition-colors"
+                >
+                  <EyeOff className="mr-2 h-4 w-4" />
+                  Hide post
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleReport}
+                  className="cursor-pointer text-red-500 hover:text-red-600 hover:bg-red-500/10 transition-colors"
+                >
+                  <Flag className="mr-2 h-4 w-4" />
+                  Report post
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem
+              onClick={handleCopyLink}
+              className="cursor-pointer hover:bg-secondary/50 transition-colors"
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Copy link
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleShare}
+              className="cursor-pointer hover:bg-secondary/50 transition-colors"
+            >
+              <Share className="mr-2 h-4 w-4" />
+              Share post
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <p className="text-foreground mb-3 text-balance">{content}</p>
@@ -281,6 +425,27 @@ const Post = ({
           username: author.username
         }}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="glass-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

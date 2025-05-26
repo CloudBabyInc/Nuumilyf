@@ -142,16 +142,29 @@ const Feed = () => {
       })
       .subscribe();
 
+    const repostsChannel = supabase
+      .channel('public:reposts')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'reposts',
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['posts'] });
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(postsChannel);
       supabase.removeChannel(likesChannel);
       supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(repostsChannel);
     };
   }, [session, queryClient]);
 
   const { data: posts, isLoading: postsLoading } = useQuery({
     queryKey: ['posts'],
     queryFn: async () => {
+      // Fetch posts first
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
@@ -161,65 +174,89 @@ const Feed = () => {
           created_at,
           user_id
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(20); // Limit for better performance
 
       if (postsError) {
         console.error('Error fetching posts:', postsError);
         throw postsError;
       }
 
-      const postsWithProfilesAndCounts = await Promise.all(postsData.map(async (post) => {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, display_name, username, avatar_url, is_verified')
-          .eq('id', post.user_id)
-          .single();
+      if (!postsData || postsData.length === 0) {
+        console.log('No posts found in database');
+        return [];
+      }
 
-        if (profileError) {
-          console.error('Error fetching profile for post:', profileError);
-          return null;
-        }
+      console.log(`Found ${postsData.length} posts`);
 
-        const { count: likesCount, error: likesError } = await supabase
+      // Get all post IDs and user IDs for batch queries
+      const postIds = postsData.map(post => post.id);
+      const userIds = [...new Set(postsData.map(post => post.user_id))];
+
+      // Batch query for profiles
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, is_verified')
+        .in('id', userIds);
+
+      // Batch query for likes counts
+      const { data: likesData } = await supabase
+        .from('likes')
+        .select('post_id')
+        .in('post_id', postIds);
+
+      // Batch query for comments counts
+      const { data: commentsData } = await supabase
+        .from('comments')
+        .select('post_id')
+        .in('post_id', postIds);
+
+      // Batch query for reposts counts
+      const { data: repostsData } = await supabase
+        .from('reposts')
+        .select('post_id')
+        .in('post_id', postIds);
+
+      // Batch query for user's likes if logged in
+      let userLikesData = [];
+      if (session?.user?.id) {
+        const { data } = await supabase
           .from('likes')
-          .select('id', { count: 'exact', head: true })
-          .eq('post_id', post.id);
+          .select('post_id')
+          .in('post_id', postIds)
+          .eq('user_id', session.user.id);
+        userLikesData = data || [];
+      }
 
-        if (likesError) {
-          console.error('Error fetching likes count:', likesError);
-        }
+      // Create lookup maps for O(1) access
+      const profilesMap = profilesData?.reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as Record<string, any>) || {};
 
-        const { count: commentsCount, error: commentsError } = await supabase
-          .from('comments')
-          .select('id', { count: 'exact', head: true })
-          .eq('post_id', post.id);
+      const likesCountMap = likesData?.reduce((acc, like) => {
+        acc[like.post_id] = (acc[like.post_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
 
-        if (commentsError) {
-          console.error('Error fetching comments count:', commentsError);
-        }
+      const commentsCountMap = commentsData?.reduce((acc, comment) => {
+        acc[comment.post_id] = (acc[comment.post_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
 
-        const { count: repostsCount, error: repostsError } = await supabase
-          .from('reposts')
-          .select('id', { count: 'exact', head: true })
-          .eq('post_id', post.id);
+      const repostsCountMap = repostsData?.reduce((acc, repost) => {
+        acc[repost.post_id] = (acc[repost.post_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
 
-        if (repostsError) {
-          console.error('Error fetching reposts count:', repostsError);
-        }
+      const userLikesSet = new Set(userLikesData.map(like => like.post_id));
 
-        let isLiked = false;
-        if (session?.user?.id) {
-          const { data: likeData, error: likeError } = await supabase
-            .from('likes')
-            .select('id')
-            .eq('post_id', post.id)
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-
-          if (likeError) {
-            console.error('Error fetching like status:', likeError);
-          }
-          isLiked = !!likeData;
+      // Transform data with O(1) lookups
+      const transformedPosts = postsData.map(post => {
+        const profile = profilesMap[post.user_id];
+        if (!profile) {
+          console.warn(`No profile found for user ${post.user_id}`);
+          return null;
         }
 
         return {
@@ -228,22 +265,25 @@ const Feed = () => {
           image_url: post.image_url,
           created_at: post.created_at,
           author: {
-            id: profileData.id,
-            name: profileData.display_name || profileData.username,
-            username: profileData.username,
-            avatar_url: profileData.avatar_url,
-            is_verified: profileData.is_verified
+            id: profile.id,
+            name: profile.full_name || profile.username,
+            username: profile.username,
+            avatar_url: profile.avatar_url,
+            is_verified: profile.is_verified || false
           },
-          likes_count: likesCount || 0,
-          comments_count: commentsCount || 0,
-          reposts_count: repostsCount || 0,
-          isLiked
+          likes_count: likesCountMap[post.id] || 0,
+          comments_count: commentsCountMap[post.id] || 0,
+          reposts_count: repostsCountMap[post.id] || 0,
+          isLiked: userLikesSet.has(post.id)
         };
-      }));
+      }).filter(Boolean);
 
-      return postsWithProfilesAndCounts.filter(Boolean) as PostType[];
+      console.log(`Returning ${transformedPosts.length} transformed posts`);
+      return transformedPosts as PostType[];
     },
-    enabled: !!session
+    enabled: !!session,
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false
   });
 
   const handleLike = async (postId: string) => {
@@ -388,6 +428,88 @@ const Feed = () => {
     }
   };
 
+  const handleDelete = async (postId: string) => {
+    if (!session) {
+      toast.error('Please sign in to delete posts');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', session.user.id); // Ensure user can only delete their own posts
+
+      if (error) throw error;
+
+      // Remove the post from the cache
+      queryClient.setQueryData(['posts'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.filter((p: any) => p.id !== postId);
+      });
+
+      toast.success('Post deleted successfully');
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    }
+  };
+
+  const handleHide = (postId: string) => {
+    // Remove the post from the cache (hide it locally)
+    queryClient.setQueryData(['posts'], (oldData: any) => {
+      if (!oldData) return oldData;
+      return oldData.filter((p: any) => p.id !== postId);
+    });
+
+    toast.success('Post hidden from your feed');
+  };
+
+  const handleEdit = (postId: string) => {
+    // Navigate to edit page or open edit modal
+    console.log(`Edit post ${postId}`);
+    toast.info('Edit functionality coming soon');
+  };
+
+  const handleReport = async (postId: string) => {
+    if (!session) {
+      toast.error('Please sign in to report posts');
+      return;
+    }
+
+    try {
+      // Check if user has already reported this post
+      const { data: existingReport } = await supabase
+        .from('reports')
+        .select('*')
+        .eq('post_id', postId)
+        .eq('reporter_id', session.user.id)
+        .single();
+
+      if (existingReport) {
+        toast.info('You have already reported this post');
+        return;
+      }
+
+      // Create a new report
+      const { error } = await supabase
+        .from('reports')
+        .insert({
+          post_id: postId,
+          reporter_id: session.user.id,
+          reason: 'Inappropriate content' // You could add a reason selection dialog
+        });
+
+      if (error) throw error;
+
+      toast.success('Post reported. Thank you for helping keep our community safe.');
+    } catch (error) {
+      console.error('Error reporting post:', error);
+      toast.error('Failed to report post');
+    }
+  };
+
   if (!session && !postsLoading && !storiesLoading) {
     return (
       <div className="min-h-screen bg-background pb-24">
@@ -464,6 +586,10 @@ const Feed = () => {
               onComment={() => handleComment(post.id)}
               onRepost={() => handleRepost(post.id)}
               onShare={() => handleShare(post.id)}
+              onDelete={() => handleDelete(post.id)}
+              onHide={() => handleHide(post.id)}
+              onEdit={() => handleEdit(post.id)}
+              onReport={() => handleReport(post.id)}
             />
           ))
         ) : (

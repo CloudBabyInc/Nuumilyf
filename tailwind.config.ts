@@ -19,6 +19,19 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'bricolage': ['Bricolage Grotesque', 'sans-serif'],
+				'sans': ['Bricolage Grotesque', 'sans-serif'],
+			},
+			fontWeight: {
+				'extralight': '200',
+				'light': '300',
+				'normal': '400',
+				'medium': '500',
+				'semibold': '600',
+				'bold': '700',
+				'extrabold': '800',
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
