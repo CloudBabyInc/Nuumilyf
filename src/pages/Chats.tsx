@@ -234,8 +234,7 @@ const DirectMessagePage = () => {
             .insert({
               conversation_id: newConversation.id,
               sender_id: refreshedSession.session.user.id,
-              content: 'Hello! I started this conversation.',
-              read: false
+              content: 'Hello! I started this conversation.'
             });
 
           if (messageError) {
@@ -562,9 +561,7 @@ const ConversationPage = () => {
         .insert({
           conversation_id: conversationId,
           sender_id: session.user.id,
-          content: content.trim(),
-          topic: 'message', // Required field
-          extension: '' // Required field
+          content: content.trim()
         })
         .select('id')
         .single();
