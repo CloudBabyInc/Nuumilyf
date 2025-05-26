@@ -116,7 +116,6 @@ const ingredientEmojiMap: Record<string, string> = {
   'vinegar': '🧪',
   'sauce': '🧂',
   'salt': '🧂',
-  'pepper': '🌶️',
   'spice': '🌶️',
 
   // Cooking methods
