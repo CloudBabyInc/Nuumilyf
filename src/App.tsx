@@ -19,7 +19,6 @@ import CreatePost from "./pages/CreatePost";
 import Chats from "./pages/Chats";
 import Notifications from "./pages/Notifications";
 import PostView from "./pages/PostView";
-import TestChat from "./pages/TestChat";
 import MealPlanning from "./pages/MealPlanning";
 import CreateMeal from "./pages/CreateMeal";
 import ThemeProvider from "./components/theme/ThemeProvider";
@@ -70,7 +69,6 @@ const AppRoutes = () => {
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/post/:postId" element={<PostView />} />
-        <Route path="/test-chat" element={<TestChat />} />
         <Route path="/meal-planning" element={<MealPlanning />} />
         <Route path="/create-meal" element={<CreateMeal />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
