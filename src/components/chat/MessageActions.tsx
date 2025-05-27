@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  MoreHorizontal, 
-  Edit3, 
-  Trash2, 
-  Copy, 
-  Reply, 
+import {
+  Edit3,
+  Trash2,
+  Copy,
+  Reply,
   Clock,
-  AlertCircle 
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,6 +42,8 @@ const MessageActions: React.FC<MessageActionsProps> = ({
   const [editContent, setEditContent] = useState(content);
   const [timeLeft, setTimeLeft] = useState(0);
   const [canModify, setCanModify] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const [isLongPressing, setIsLongPressing] = useState(false);
 
   const isOwnMessage = senderId === currentUserId;
   const messageTime = new Date(createdAt);
@@ -68,6 +69,32 @@ const MessageActions: React.FC<MessageActionsProps> = ({
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
+
+  // Long press handlers
+  const handleLongPressStart = () => {
+    setIsLongPressing(true);
+    longPressTimer.current = setTimeout(() => {
+      setIsOpen(true);
+      setIsLongPressing(false);
+    }, 500); // 500ms long press
+  };
+
+  const handleLongPressEnd = () => {
+    setIsLongPressing(false);
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+      }
+    };
+  }, []);
 
   const handleCopy = async () => {
     try {
@@ -164,7 +191,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-semibold mb-4">Edit Message</h3>
-              
+
               {canModify && (
                 <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
                   <Clock size={14} />
@@ -180,7 +207,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
                 maxLength={1000}
                 disabled={!canModify}
               />
-              
+
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   onClick={() => setIsEditing(false)}
@@ -204,12 +231,24 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       {/* Actions Menu */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            className="absolute bottom-full right-0 mb-2 bg-card border border-border rounded-lg shadow-lg py-2 min-w-[180px] z-40"
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          >
+          <>
+            {/* Backdrop */}
+            <motion.div
+              className="fixed inset-0 bg-black/20 z-30"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+            />
+
+            {/* Menu */}
+            <motion.div
+              className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl py-2 min-w-[200px] z-40"
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            >
             {/* Time indicator for own messages */}
             {isOwnMessage && !isDeleted && (
               <div className="px-3 py-2 border-b border-border">
@@ -276,20 +315,35 @@ const MessageActions: React.FC<MessageActionsProps> = ({
                 <span className="text-xs text-muted-foreground">This message was edited</span>
               </div>
             )}
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
-      {/* Trigger Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-secondary",
-          isOpen && "opacity-100"
-        )}
-      >
-        <MoreHorizontal size={16} className="text-muted-foreground" />
-      </button>
+      {/* Invisible Long Press Area - covers the entire message bubble */}
+      <div
+        className="absolute inset-0 z-10"
+        onMouseDown={handleLongPressStart}
+        onMouseUp={handleLongPressEnd}
+        onMouseLeave={handleLongPressEnd}
+        onTouchStart={handleLongPressStart}
+        onTouchEnd={handleLongPressEnd}
+        onTouchCancel={handleLongPressEnd}
+        style={{
+          background: isLongPressing ? 'rgba(0,0,0,0.1)' : 'transparent',
+          borderRadius: 'inherit'
+        }}
+      />
+
+      {/* Long press feedback */}
+      {isLongPressing && (
+        <motion.div
+          className="absolute inset-0 bg-black/10 rounded-2xl"
+          initial={{ scale: 1 }}
+          animate={{ scale: 1.05 }}
+          transition={{ duration: 0.5 }}
+        />
+      )}
     </div>
   );
 };

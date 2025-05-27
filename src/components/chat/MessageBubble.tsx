@@ -117,7 +117,7 @@ const MessageBubble = ({
   return (
     <motion.div
       className={cn(
-        "max-w-[80%] mb-3 flex flex-col group",
+        "max-w-[80%] mb-3 flex flex-col",
         isSender ? "ml-auto items-end" : "mr-auto items-start"
       )}
       initial="initial"
@@ -126,24 +126,22 @@ const MessageBubble = ({
       layout
       layoutId={`message-${timestamp}-${content.slice(0, 10)}`}
     >
-      <div className="flex items-start gap-2 w-full">
-        <motion.div
-          className={cn(
-            "px-4 py-2 rounded-2xl break-words flex-1",
-            isSender
-              ? "bg-nuumi-pink text-white rounded-br-none"
-              : "bg-secondary text-foreground rounded-bl-none"
-          )}
-          whileHover={{ scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        >
-          {content}
-          {isEdited && (
-            <span className="text-xs opacity-70 ml-2">(edited)</span>
-          )}
-        </motion.div>
+      <motion.div
+        className={cn(
+          "px-4 py-2 rounded-2xl break-words max-w-xs relative",
+          isSender
+            ? "bg-nuumi-pink text-white rounded-br-none"
+            : "bg-secondary text-foreground rounded-bl-none"
+        )}
+        whileHover={{ scale: 1.02 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      >
+        {content}
+        {isEdited && (
+          <span className="text-xs opacity-70 ml-2">(edited)</span>
+        )}
 
-        {/* Message Actions */}
+        {/* Message Actions - Hidden, will be triggered by long press */}
         <MessageActions
           messageId={messageId}
           content={content}
@@ -156,7 +154,7 @@ const MessageBubble = ({
           onUnsend={onUnsend}
           onReply={onReply}
         />
-      </div>
+      </motion.div>
 
       <div className="flex items-center mt-1 text-xs text-muted-foreground">
         <span>
