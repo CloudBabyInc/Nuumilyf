@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { FadeIn, SlideUp } from '@/components/ui/MotionWrapper';
+import { Typography } from '@/components/ui/Typography';
 
 const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
@@ -72,21 +74,38 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <img
-            src="/assets/LOGO.png"
-            alt="nuumi - For every mom"
-            className="h-16 mx-auto mb-4"
-          />
-          <h1 className="text-2xl font-bold">Set New Password</h1>
-          <p className="text-muted-foreground mt-2">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 flex flex-col items-center justify-center p-4">
+      <FadeIn delay={0.1} className="w-full max-w-md">
+        <SlideUp delay={0.2} className="text-center mb-8">
+          <FadeIn delay={0.3}>
+            <img
+              src="/assets/LOGO.png"
+              alt="nuumi - For every mom"
+              className="h-16 mx-auto mb-4 filter drop-shadow-lg"
+            />
+          </FadeIn>
+          <Typography
+            variant="h2"
+            weight="bold"
+            animate={true}
+            animationVariant="slideUp"
+            delay={0.4}
+            className="text-elegant-bold mb-2"
+          >
+            Set New Password
+          </Typography>
+          <Typography
+            variant="body"
+            animate={true}
+            animationVariant="fadeIn"
+            delay={0.5}
+            className="text-muted-foreground text-elegant"
+          >
             Create a new password for your account
-          </p>
-        </div>
+          </Typography>
+        </SlideUp>
 
-        <div className="bg-card rounded-xl p-6 shadow-lg">
+        <SlideUp delay={0.6} className="glass-card bg-card/80 backdrop-blur-md rounded-xl p-6 shadow-xl border border-white/10">
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
@@ -122,8 +141,8 @@ const ResetPassword = () => {
               {loading ? 'Resetting...' : 'Reset Password'}
             </Button>
           </form>
-        </div>
-      </div>
+        </SlideUp>
+      </FadeIn>
     </div>
   );
 };
