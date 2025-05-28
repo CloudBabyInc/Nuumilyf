@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Smile, Paperclip, Send, Image, Mic, Loader2, X, Play, Pause, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import VoiceAmbienceRecorder from './VoiceAmbienceRecorder';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -22,6 +23,7 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [frequencyData, setFrequencyData] = useState<Uint8Array>(new Uint8Array(128));
+  const [showAmbienceRecorder, setShowAmbienceRecorder] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -672,10 +674,7 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
             ) : (
               <motion.button
                 className="ml-2 p-2 rounded-full bg-nuumi-pink text-white hover:bg-nuumi-pink/90 transition-colors select-none"
-                onMouseDown={handleMicMouseDown}
-                onMouseUp={handleMicMouseUp}
-                onTouchStart={handleMicMouseDown}
-                onTouchEnd={handleMicMouseUp}
+                onClick={() => setShowAmbienceRecorder(true)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -685,6 +684,18 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Voice Ambience Recorder */}
+      <VoiceAmbienceRecorder
+        isOpen={showAmbienceRecorder}
+        onClose={() => setShowAmbienceRecorder(false)}
+        onSendVoiceMessage={async (audioBlob: Blob, duration: number) => {
+          if (onSendVoiceMessage) {
+            await onSendVoiceMessage(audioBlob, duration);
+          }
+          setShowAmbienceRecorder(false);
+        }}
+      />
     </motion.div>
   );
 };
