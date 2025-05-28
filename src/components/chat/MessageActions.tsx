@@ -6,7 +6,8 @@ import {
   Copy,
   Reply,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +21,8 @@ interface MessageActionsProps {
   createdAt: string;
   isDeleted?: boolean;
   isEdited?: boolean;
+  audioUrl?: string;
+  isVoiceMessage?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onUnsend?: (messageId: string) => void;
   onReply?: (content: string) => void;
@@ -33,6 +36,8 @@ const MessageActions: React.FC<MessageActionsProps> = ({
   createdAt,
   isDeleted = false,
   isEdited = false,
+  audioUrl,
+  isVoiceMessage = false,
   onEdit,
   onUnsend,
   onReply
@@ -98,11 +103,29 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 
   const handleCopy = async () => {
     try {
+      if (isVoiceMessage) {
+        toast.info('Voice messages cannot be copied as text');
+        setIsOpen(false);
+        return;
+      }
       await navigator.clipboard.writeText(content);
       toast.success('Message copied to clipboard');
       setIsOpen(false);
     } catch (error) {
       toast.error('Failed to copy message');
+    }
+  };
+
+  const handleDownload = () => {
+    if (audioUrl) {
+      const link = document.createElement('a');
+      link.href = audioUrl;
+      link.download = `voice-message-${messageId}.webm`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Voice message downloaded');
+      setIsOpen(false);
     }
   };
 
@@ -267,13 +290,26 @@ const MessageActions: React.FC<MessageActionsProps> = ({
             )}
 
             {/* Copy */}
-            <button
-              onClick={handleCopy}
-              className="w-full px-3 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
-            >
-              <Copy size={14} />
-              Copy Message
-            </button>
+            {!isVoiceMessage && (
+              <button
+                onClick={handleCopy}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
+              >
+                <Copy size={14} />
+                Copy Message
+              </button>
+            )}
+
+            {/* Download (only for voice messages) */}
+            {isVoiceMessage && audioUrl && (
+              <button
+                onClick={handleDownload}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-secondary flex items-center gap-2"
+              >
+                <Download size={14} />
+                Download Voice Message
+              </button>
+            )}
 
             {/* Reply */}
             <button
@@ -284,8 +320,8 @@ const MessageActions: React.FC<MessageActionsProps> = ({
               Reply
             </button>
 
-            {/* Edit (only for own messages within time limit) */}
-            {isOwnMessage && canModify && (
+            {/* Edit (only for own text messages within time limit) */}
+            {isOwnMessage && canModify && !isVoiceMessage && (
               <button
                 onClick={() => {
                   setIsEditing(true);

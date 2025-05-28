@@ -13,6 +13,9 @@ interface Message {
   isNew?: boolean;
   isDeleted?: boolean;
   isEdited?: boolean;
+  messageType?: 'text' | 'voice';
+  audioUrl?: string;
+  audioDuration?: number;
 }
 
 interface MessageListProps {
@@ -157,6 +160,9 @@ const MessageList = ({
                     isNew={message.isNew}
                     isDeleted={message.isDeleted}
                     isEdited={message.isEdited}
+                    messageType={message.messageType}
+                    audioUrl={message.audioUrl}
+                    audioDuration={message.audioDuration}
                     onEdit={onEditMessage}
                     onUnsend={onUnsendMessage}
                     onReply={onReplyToMessage}

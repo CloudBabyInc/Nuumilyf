@@ -1,5 +1,95 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200;12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap');
+/* Libre Caslon Condensed Font Faces */
+@font-face {
+  font-family: 'Libre Caslon Condensed';
+  src: url('/fonts/libre-caslon-condensed/webfonts/LibreCaslonCondensed[wght].woff2') format('woff2-variations'),
+       url('/fonts/libre-caslon-condensed/variable/LibreCaslonCondensed[wght].ttf') format('truetype-variations');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libre Caslon Condensed';
+  src: url('/fonts/libre-caslon-condensed/webfonts/LibreCaslonCondensed-Italic[wght].woff2') format('woff2-variations'),
+       url('/fonts/libre-caslon-condensed/variable/LibreCaslonCondensed-Italic[wght].ttf') format('truetype-variations');
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Static font fallbacks for better browser support */
+@font-face {
+  font-family: 'Libre Caslon Condensed';
+  src: url('/fonts/libre-caslon-condensed/webfonts/LibreCaslonCondensed-Regular.woff2') format('woff2'),
+       url('/fonts/libre-caslon-condensed/ttf/LibreCaslonCondensed-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libre Caslon Condensed';
+  src: url('/fonts/libre-caslon-condensed/webfonts/LibreCaslonCondensed-Medium.woff2') format('woff2'),
+       url('/fonts/libre-caslon-condensed/ttf/LibreCaslonCondensed-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libre Caslon Condensed';
+  src: url('/fonts/libre-caslon-condensed/webfonts/LibreCaslonCondensed-SemiBold.woff2') format('woff2'),
+       url('/fonts/libre-caslon-condensed/ttf/LibreCaslonCondensed-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libre Caslon Condensed';
+  src: url('/fonts/libre-caslon-condensed/webfonts/LibreCaslonCondensed-Bold.woff2') format('woff2'),
+       url('/fonts/libre-caslon-condensed/ttf/LibreCaslonCondensed-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libre Caslon Condensed';
+  src: url('/fonts/libre-caslon-condensed/webfonts/LibreCaslonCondensed-Italic.woff2') format('woff2'),
+       url('/fonts/libre-caslon-condensed/ttf/LibreCaslonCondensed-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libre Caslon Condensed';
+  src: url('/fonts/libre-caslon-condensed/webfonts/LibreCaslonCondensed-MediumItalic.woff2') format('woff2'),
+       url('/fonts/libre-caslon-condensed/ttf/LibreCaslonCondensed-MediumItalic.ttf') format('truetype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libre Caslon Condensed';
+  src: url('/fonts/libre-caslon-condensed/webfonts/LibreCaslonCondensed-SemiBoldItalic.woff2') format('woff2'),
+       url('/fonts/libre-caslon-condensed/ttf/LibreCaslonCondensed-SemiBoldItalic.ttf') format('truetype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libre Caslon Condensed';
+  src: url('/fonts/libre-caslon-condensed/webfonts/LibreCaslonCondensed-BoldItalic.woff2') format('woff2'),
+       url('/fonts/libre-caslon-condensed/ttf/LibreCaslonCondensed-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
@@ -60,11 +150,13 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-optical-sizing: auto;
-    font-variation-settings: "opsz" 16;
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-weight: 400;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
   }
 
   /* Override default button hover styles */
@@ -250,46 +342,76 @@
     color: hsl(var(--card-foreground));
   }
 
-  /* Bricolage Grotesque Variable Font Utilities */
-  .font-optical-12 {
-    font-variation-settings: "opsz" 12;
+  /* Libre Caslon Condensed Typography Utilities */
+  .font-caslon-regular {
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-weight: 400;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   }
 
-  .font-optical-16 {
-    font-variation-settings: "opsz" 16;
+  .font-caslon-medium {
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-weight: 500;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   }
 
-  .font-optical-24 {
-    font-variation-settings: "opsz" 24;
+  .font-caslon-semibold {
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-weight: 600;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   }
 
-  .font-optical-48 {
-    font-variation-settings: "opsz" 48;
+  .font-caslon-bold {
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-weight: 700;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   }
 
-  .font-optical-96 {
-    font-variation-settings: "opsz" 96;
+  .font-caslon-italic {
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-style: italic;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   }
 
-  /* Headings with optimal optical sizing */
+  /* Enhanced Typography Hierarchy */
   h1, .text-4xl, .text-5xl, .text-6xl {
-    font-variation-settings: "opsz" 48;
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   }
 
   h2, .text-3xl {
-    font-variation-settings: "opsz" 32;
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   }
 
   h3, .text-2xl {
-    font-variation-settings: "opsz" 24;
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.4;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   }
 
   h4, .text-xl {
-    font-variation-settings: "opsz" 20;
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    line-height: 1.5;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   }
 
   .text-sm, .text-xs {
-    font-variation-settings: "opsz" 12;
+    font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.6;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   }
 
   /* THEME-AWARE TEXT FOR ALL GLASS COMPONENTS */
@@ -641,12 +763,14 @@
 .glass-input {
   color: hsl(var(--foreground)) !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
 }
 
 /* Ensure placeholders are visible */
 .glass-input::placeholder {
   color: hsl(var(--foreground), 0.6) !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
 }
 
 /* Action button states with improved visibility */
@@ -770,4 +894,198 @@
 .glass-dialog input:focus {
   border-color: rgba(233, 75, 157, 0.4) !important;
   box-shadow: 0 0 8px rgba(233, 75, 157, 0.2) !important;
+}
+
+/* ===== ENHANCED TYPOGRAPHY & ANIMATION SYSTEM ===== */
+
+/* Enhanced Typography Classes */
+.text-elegant {
+  font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.6;
+  font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
+}
+
+.text-elegant-bold {
+  font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+  font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
+}
+
+.text-elegant-italic {
+  font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: 1.6;
+  font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
+}
+
+/* Shimmer Text Effect */
+.text-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--foreground)) 0%,
+    hsl(var(--primary)) 50%,
+    hsl(var(--foreground)) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: text-shimmer 3s ease-in-out infinite;
+}
+
+/* Enhanced Button Animations with Blur */
+.btn-elegant {
+  font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-origin: center;
+  filter: blur(0px);
+}
+
+.btn-elegant:hover {
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  filter: blur(0px) brightness(1.05);
+}
+
+.btn-elegant:active {
+  transform: translateY(0) scale(0.99);
+  filter: blur(0px) brightness(0.95);
+  transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Card Hover Effects with Blur */
+.card-elegant {
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-origin: center;
+  filter: blur(0px);
+}
+
+.card-elegant:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+  filter: blur(0px) brightness(1.02);
+}
+
+/* Stagger Animation Utilities */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fade-in-up 0.8s ease-out forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.1s; }
+.stagger-item:nth-child(2) { animation-delay: 0.2s; }
+.stagger-item:nth-child(3) { animation-delay: 0.3s; }
+.stagger-item:nth-child(4) { animation-delay: 0.4s; }
+.stagger-item:nth-child(5) { animation-delay: 0.5s; }
+.stagger-item:nth-child(6) { animation-delay: 0.6s; }
+.stagger-item:nth-child(7) { animation-delay: 0.7s; }
+.stagger-item:nth-child(8) { animation-delay: 0.8s; }
+
+/* Floating Elements */
+.float-element {
+  animation: float 3s ease-in-out infinite;
+}
+
+.float-element:nth-child(even) {
+  animation-delay: 1.5s;
+}
+
+/* Glow Effects */
+.glow-primary {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.glow-on-hover:hover {
+  box-shadow: 0 0 20px rgba(233, 75, 157, 0.6);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Enhanced Glass Components with Libre Caslon */
+.glass-card h1, .glass-card h2, .glass-card h3, .glass-card h4, .glass-card h5, .glass-card h6 {
+  font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif !important;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.glass-card p, .glass-card span, .glass-card div {
+  font-family: 'Libre Caslon Condensed', 'Georgia', 'Times New Roman', serif !important;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: 1.6;
+}
+
+/* Responsive Typography Scaling */
+@media (max-width: 768px) {
+  h1, .text-4xl, .text-5xl, .text-6xl {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    line-height: 1.1;
+  }
+
+  h2, .text-3xl {
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    line-height: 1.2;
+  }
+
+  h3, .text-2xl {
+    font-size: clamp(1.3rem, 3vw, 1.75rem);
+    line-height: 1.3;
+  }
+}
+
+/* Smooth Page Transitions */
+.page-transition {
+  animation: fade-in-up 0.6s ease-out;
+}
+
+/* Enhanced Focus States */
+.focus-elegant:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 4px rgba(233, 75, 157, 0.2);
+}
+
+/* Sophisticated Micro-interactions */
+.micro-bounce:active {
+  transform: scale(0.97);
+  filter: blur(0px) brightness(0.95);
+  transition: all 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.micro-lift:hover {
+  transform: translateY(-1px);
+  filter: blur(0px) brightness(1.03);
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Enhanced Loading States */
+.loading-elegant {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-elegant::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shimmer 2s infinite;
 }

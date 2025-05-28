@@ -12,6 +12,7 @@ import ConnectedUsersList from '@/components/chat/ConnectedUsersList';
 import { toast } from 'sonner';
 import { Loader2, Users } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { nanoid } from 'nanoid';
 
 // Main Chats Page Component
 const ChatsMainPage = () => {
@@ -448,7 +449,7 @@ const ConversationPage = () => {
       // Get messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
-        .select('id, content, created_at, sender_id, is_deleted, is_edited, original_content')
+        .select('id, content, created_at, sender_id, is_deleted, is_edited, original_content, message_type, audio_url, audio_duration')
         .eq('conversation_id', conversationId)
         .order('created_at');
 
@@ -466,7 +467,10 @@ const ConversationPage = () => {
           senderId: msg.sender_id,
           status: 'delivered', // Default status since we don't have read tracking
           isDeleted: msg.is_deleted || false,
-          isEdited: msg.is_edited || false
+          isEdited: msg.is_edited || false,
+          messageType: msg.message_type || 'text',
+          audioUrl: msg.audio_url,
+          audioDuration: msg.audio_duration
         })));
       } else {
         // No messages yet - this is normal for new conversations
@@ -525,7 +529,10 @@ const ConversationPage = () => {
               timestamp: newMessage.created_at,
               senderId: newMessage.sender_id,
               status: 'delivered',
-              isNew: true
+              isNew: true,
+              messageType: newMessage.message_type || 'text',
+              audioUrl: newMessage.audio_url,
+              audioDuration: newMessage.audio_duration
             }
           ]);
         }
@@ -583,7 +590,8 @@ const ConversationPage = () => {
         content: content.trim(),
         timestamp: now,
         senderId: session.user.id,
-        status: 'sent'
+        status: 'sent',
+        messageType: 'text'
       }
     ]);
 
@@ -594,7 +602,8 @@ const ConversationPage = () => {
         .insert({
           conversation_id: conversationId,
           sender_id: session.user.id,
-          content: content.trim()
+          content: content.trim(),
+          message_type: 'text'
         })
         .select('id')
         .single();
@@ -620,6 +629,127 @@ const ConversationPage = () => {
       toast.error('Failed to send message');
 
       // Remove the optimistic message on error
+      setMessages(current => current.filter(msg => msg.id !== tempId));
+    }
+  };
+
+  const handleSendVoiceMessage = async (audioBlob: Blob, duration: number) => {
+    if (!session || !conversationId) {
+      console.error('Missing session or conversationId');
+      return;
+    }
+
+    console.log('Starting voice message send:', {
+      blobSize: audioBlob.size,
+      duration,
+      conversationId,
+      userId: session.user.id
+    });
+
+    // Generate a temporary ID for optimistic UI update
+    const tempId = `temp-${Date.now()}`;
+    const now = new Date().toISOString();
+
+    try {
+      // Upload audio file to storage
+      const fileExt = 'webm';
+      const uniqueId = nanoid();
+      const fileName = `${uniqueId}.${fileExt}`;
+      const filePath = `${session.user.id}/${fileName}`;
+
+      console.log('Uploading to path:', filePath);
+
+      // Add voice message to UI immediately (optimistic update)
+      const tempAudioUrl = URL.createObjectURL(audioBlob);
+      setMessages(current => [
+        ...current,
+        {
+          id: tempId,
+          content: 'Voice message',
+          timestamp: now,
+          senderId: session.user.id,
+          status: 'sent',
+          messageType: 'voice',
+          audioUrl: tempAudioUrl,
+          audioDuration: duration
+        }
+      ]);
+
+      // Upload to Supabase storage
+      console.log('Starting upload to Supabase storage...');
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('voice-messages')
+        .upload(filePath, audioBlob, {
+          contentType: 'audio/webm',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Error uploading voice message:', uploadError);
+        toast.error(`Failed to upload voice message: ${uploadError.message}`);
+        setMessages(current => current.filter(msg => msg.id !== tempId));
+        return;
+      }
+
+      console.log('Upload successful:', uploadData);
+
+      // Get the public URL
+      const { data: publicURLData } = supabase.storage
+        .from('voice-messages')
+        .getPublicUrl(filePath);
+
+      if (!publicURLData || !publicURLData.publicUrl) {
+        console.error('Failed to get public URL');
+        toast.error('Failed to get voice message URL');
+        setMessages(current => current.filter(msg => msg.id !== tempId));
+        return;
+      }
+
+      const publicUrl = `${publicURLData.publicUrl}?t=${Date.now()}`;
+      console.log('Public URL:', publicUrl);
+
+      // Save message to database
+      console.log('Saving to database...');
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          sender_id: session.user.id,
+          content: 'Voice message',
+          message_type: 'voice',
+          audio_url: publicUrl,
+          audio_duration: duration
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error saving voice message to database:', error);
+        toast.error(`Failed to send voice message: ${error.message}`);
+        setMessages(current => current.filter(msg => msg.id !== tempId));
+      } else {
+        console.log('Voice message saved successfully:', data);
+        // Update the message with real data
+        setMessages(current =>
+          current.map(msg =>
+            msg.id === tempId
+              ? {
+                  ...msg,
+                  id: data.id,
+                  status: 'delivered',
+                  audioUrl: publicUrl
+                }
+              : msg
+          )
+        );
+
+        // Clean up temporary URL
+        URL.revokeObjectURL(tempAudioUrl);
+        toast.success('Voice message sent!');
+      }
+    } catch (err) {
+      console.error('Error sending voice message:', err);
+      toast.error(`Failed to send voice message: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setMessages(current => current.filter(msg => msg.id !== tempId));
     }
   };
@@ -652,7 +782,10 @@ const ConversationPage = () => {
             />
           </div>
 
-          <MessageInput onSendMessage={handleSendMessage} />
+          <MessageInput
+            onSendMessage={handleSendMessage}
+            onSendVoiceMessage={handleSendVoiceMessage}
+          />
         </>
       )}
     </div>

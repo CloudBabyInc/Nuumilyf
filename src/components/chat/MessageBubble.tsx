@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Check, CheckCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import MessageActions from './MessageActions';
+import VoiceMessageBubble from './VoiceMessageBubble';
 
 interface MessageBubbleProps {
   messageId: string;
@@ -17,6 +18,9 @@ interface MessageBubbleProps {
   isNew?: boolean;
   isDeleted?: boolean;
   isEdited?: boolean;
+  messageType?: 'text' | 'voice';
+  audioUrl?: string;
+  audioDuration?: number;
   onEdit?: (messageId: string, newContent: string) => void;
   onUnsend?: (messageId: string) => void;
   onReply?: (content: string) => void;
@@ -33,10 +37,33 @@ const MessageBubble = ({
   isNew = false,
   isDeleted = false,
   isEdited = false,
+  messageType = 'text',
+  audioUrl,
+  audioDuration,
   onEdit,
   onUnsend,
   onReply
 }: MessageBubbleProps) => {
+  // Handle voice messages
+  if (messageType === 'voice' && audioUrl && audioDuration !== undefined) {
+    return (
+      <VoiceMessageBubble
+        messageId={messageId}
+        audioUrl={audioUrl}
+        duration={audioDuration || 1} // Default to 1 second if duration is 0
+        timestamp={timestamp}
+        isSender={isSender}
+        senderId={senderId}
+        currentUserId={currentUserId}
+        status={status}
+        isNew={isNew}
+        isDeleted={isDeleted}
+        onUnsend={onUnsend}
+        onReply={onReply}
+      />
+    );
+  }
+
   // Animation variants
   const containerVariants = {
     initial: {
