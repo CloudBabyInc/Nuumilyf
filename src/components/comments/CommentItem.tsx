@@ -33,6 +33,9 @@ interface CommentItemProps {
   onDelete: (commentId: string) => void;
   onLike: (commentId: string) => void;
   isReply?: boolean;
+  depth?: number;
+  maxDepth?: number;
+  lazyLoadReplies?: boolean;
 }
 
 const CommentItem: React.FC<CommentItemProps> = ({
@@ -41,52 +44,61 @@ const CommentItem: React.FC<CommentItemProps> = ({
   onReply,
   onDelete,
   onLike,
-  isReply = false
+  isReply = false,
+  depth = 0,
+  maxDepth = 3,
+  lazyLoadReplies = false
 }) => {
-  const [showReplies, setShowReplies] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(depth < 2); // Auto-expand first 2 levels
+  const [showReplies, setShowReplies] = useState(depth < 2); // Auto-show first 2 levels
   const [isLiked, setIsLiked] = useState(comment.isLiked);
   const [likesCount, setLikesCount] = useState(comment.likes_count);
-  
+
+  const replyCount = comment.replies?.length || 0;
+
   const hasReplies = comment.replies && comment.replies.length > 0;
+
+
   const isAuthor = currentUserId === comment.user_id;
   const formattedDate = formatDistanceToNow(new Date(comment.created_at), { addSuffix: true });
-  
+
   const handleLike = () => {
     // Optimistic update
     setIsLiked(!isLiked);
     setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
-    
+
     // Call the API
     onLike(comment.id);
   };
-  
+
   const handleReply = () => {
     onReply(comment.id, comment.author.username);
   };
-  
+
   const handleDelete = () => {
     onDelete(comment.id);
   };
-  
+
   const toggleReplies = () => {
     setShowReplies(!showReplies);
   };
-  
+
   return (
-    <div 
+    <div
       id={`comment-${comment.id}`}
       className={cn(
         "py-3 border-b border-border relative",
         comment.isNew && "bg-primary-foreground/20 animate-pulse",
-        isReply && "ml-8 border-l border-l-border pl-4"
+        depth > 0 && "border-l border-l-border pl-4"
       )}
+      style={{ marginLeft: `${depth * 24}px` }}
     >
       <div className="flex">
         <Avatar className="h-8 w-8">
           <AvatarImage src={comment.author.avatar_url} alt={comment.author.name} />
           <AvatarFallback>{comment.author.name.charAt(0)}</AvatarFallback>
         </Avatar>
-        
+
         <div className="ml-3 flex-1">
           <div className="flex items-center justify-between">
             <div>
@@ -94,7 +106,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
               <span className="text-xs text-muted-foreground ml-2">@{comment.author.username}</span>
               <span className="text-xs text-muted-foreground ml-2">{formattedDate}</span>
             </div>
-            
+
             {isAuthor && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -111,13 +123,18 @@ const CommentItem: React.FC<CommentItemProps> = ({
               </DropdownMenu>
             )}
           </div>
-          
+
           <p className="text-sm mt-1">{comment.content}</p>
-          
+
+          {/* Debug info */}
+          <div className="text-xs text-gray-500 mt-1">
+            Debug: ID={comment.id.slice(0,8)}, Parent={comment.parent_id?.slice(0,8) || 'none'}, Replies={replyCount}
+          </div>
+
           <div className="flex items-center mt-2 space-x-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="h-8 px-2 text-xs"
               onClick={handleLike}
             >
@@ -127,17 +144,17 @@ const CommentItem: React.FC<CommentItemProps> = ({
               )} />
               {likesCount > 0 && likesCount}
             </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
+
+            <Button
+              variant="ghost"
+              size="sm"
               className="h-8 px-2 text-xs"
               onClick={handleReply}
             >
               <Reply className="h-4 w-4 mr-1" />
               Reply
             </Button>
-            
+
             {hasReplies && (
               <Button
                 variant="ghost"
@@ -159,7 +176,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
           </div>
         </div>
       </div>
-      
+
       {/* Replies */}
       {hasReplies && (
         <AnimatePresence>
@@ -180,6 +197,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   onDelete={onDelete}
                   onLike={onLike}
                   isReply={true}
+                  depth={depth + 1}
+                  maxDepth={maxDepth}
+                  lazyLoadReplies={lazyLoadReplies}
                 />
               ))}
             </motion.div>
