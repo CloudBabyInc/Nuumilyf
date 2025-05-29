@@ -4,9 +4,12 @@ import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
 import Post from '@/components/shared/Post';
 import StoriesRow from '@/components/story/StoriesRow';
+import SuggestedMothersCarousel from '@/components/feed/SuggestedMothersCarousel';
+import CommentsModal from '@/components/feed/CommentsModal';
 import { supabase } from '@/integrations/supabase/client';
 import { StoryItem } from '@/components/story/Story';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePostInteractions } from '@/hooks/usePostInteractions';
 
 interface PostType {
   id: string;
@@ -28,7 +31,11 @@ interface PostType {
 
 const Feed = () => {
   const [session, setSession] = useState<any>(null);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [commentsModalOpen, setCommentsModalOpen] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { toggleLike, toggleRepost, addComment } = usePostInteractions();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -286,124 +293,18 @@ const Feed = () => {
     refetchOnWindowFocus: false
   });
 
-  const handleLike = async (postId: string) => {
-    if (!session) {
-      toast.error('Please sign in to like posts');
-      return;
-    }
 
-    const post = posts?.find(p => p.id === postId);
-    if (!post) return;
-
-    // Optimistic update is handled in the Post component
-    // Here we just need to update the database
-
-    try {
-      if (post.isLiked) {
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('user_id', session.user.id);
-
-        if (error) throw error;
-
-        // Update the post in the cache
-        queryClient.setQueryData(['posts'], (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.map((p: any) =>
-            p.id === postId
-              ? { ...p, isLiked: false, likes_count: p.likes_count - 1 }
-              : p
-          );
-        });
-      } else {
-        const { error } = await supabase
-          .from('likes')
-          .insert({
-            post_id: postId,
-            user_id: session.user.id
-          });
-
-        if (error) throw error;
-
-        // Update the post in the cache
-        queryClient.setQueryData(['posts'], (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.map((p: any) =>
-            p.id === postId
-              ? { ...p, isLiked: true, likes_count: p.likes_count + 1 }
-              : p
-          );
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      toast.error('Failed to update like status');
-
-      // Refresh the data to ensure UI is in sync with server
-      queryClient.invalidateQueries(['posts']);
-    }
-  };
 
   const handleComment = (postId: string) => {
     if (!session) {
       toast.error('Please sign in to comment');
       return;
     }
-    console.log(`Comment on post ${postId}`);
+    setSelectedPostId(postId);
+    setCommentsModalOpen(true);
   };
 
-  const handleRepost = async (postId: string) => {
-    if (!session) {
-      toast.error('Please sign in to repost');
-      return;
-    }
 
-    // Optimistic update is handled in the Post component
-
-    try {
-      // Check if already reposted
-      const { data: existingRepost } = await supabase
-        .from('reposts')
-        .select('*')
-        .eq('post_id', postId)
-        .eq('user_id', session.user.id)
-        .single();
-
-      if (existingRepost) {
-        toast.info('You have already reposted this');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('reposts')
-        .insert({
-          post_id: postId,
-          user_id: session.user.id
-        });
-
-      if (error) throw error;
-
-      // Update the post in the cache
-      queryClient.setQueryData(['posts'], (oldData: any) => {
-        if (!oldData) return oldData;
-        return oldData.map((p: any) =>
-          p.id === postId
-            ? { ...p, reposts_count: p.reposts_count + 1 }
-            : p
-        );
-      });
-
-      toast.success('Post shared to your profile');
-    } catch (error) {
-      console.error('Error reposting:', error);
-      toast.error('Failed to repost');
-
-      // Refresh the data to ensure UI is in sync with server
-      queryClient.invalidateQueries(['posts']);
-    }
-  };
 
   const handleShare = (postId: string) => {
     console.log(`Share post ${postId}`);
@@ -558,39 +459,48 @@ const Feed = () => {
             </div>
           ))
         ) : posts && posts.length > 0 ? (
-          posts.map((post) => (
-            <Post
-              key={post.id}
-              id={post.id}
-              author={{
-                id: post.author.id,
-                name: post.author.name,
-                username: post.author.username,
-                avatar: post.author.avatar_url || undefined,
-                isVerified: post.author.is_verified,
-                timeAgo: new Date(post.created_at).toLocaleDateString()
-              }}
-              content={post.content}
-              image={post.image_url || undefined}
-              likes={post.likes_count}
-              comments={post.comments_count}
-              reposts={post.reposts_count}
-              isLiked={post.isLiked}
-              currentUser={session ? {
-                id: session.user.id,
-                avatarUrl: session.user.user_metadata?.avatar_url,
-                username: session.user.user_metadata?.username || session.user.email?.split('@')[0],
-                displayName: session.user.user_metadata?.display_name || session.user.user_metadata?.username || session.user.email?.split('@')[0]
-              } : undefined}
-              onLike={() => handleLike(post.id)}
-              onComment={() => handleComment(post.id)}
-              onRepost={() => handleRepost(post.id)}
-              onShare={() => handleShare(post.id)}
-              onDelete={() => handleDelete(post.id)}
-              onHide={() => handleHide(post.id)}
-              onEdit={() => handleEdit(post.id)}
-              onReport={() => handleReport(post.id)}
-            />
+          posts.map((post, index) => (
+            <React.Fragment key={post.id}>
+              <Post
+                id={post.id}
+                author={{
+                  id: post.author.id,
+                  name: post.author.name,
+                  username: post.author.username,
+                  avatar: post.author.avatar_url || undefined,
+                  isVerified: post.author.is_verified,
+                  timeAgo: new Date(post.created_at).toLocaleDateString()
+                }}
+                content={post.content}
+                image={post.image_url || undefined}
+                likes={post.likes_count}
+                comments={post.comments_count}
+                reposts={post.reposts_count}
+                isLiked={post.isLiked}
+                currentUser={session ? {
+                  id: session.user.id,
+                  avatarUrl: session.user.user_metadata?.avatar_url,
+                  username: session.user.user_metadata?.username || session.user.email?.split('@')[0],
+                  displayName: session.user.user_metadata?.display_name || session.user.user_metadata?.username || session.user.email?.split('@')[0]
+                } : undefined}
+                onLike={() => toggleLike(post.id)}
+                onComment={() => handleComment(post.id)}
+                onRepost={() => toggleRepost(post.id)}
+                onShare={() => handleShare(post.id)}
+                onDelete={() => handleDelete(post.id)}
+                onHide={() => handleHide(post.id)}
+                onEdit={() => handleEdit(post.id)}
+                onReport={() => handleReport(post.id)}
+              />
+
+              {/* Show suggestions carousel after every 3rd post */}
+              {showSuggestions && index === 2 && (
+                <SuggestedMothersCarousel
+                  currentUserId={session?.user?.id}
+                  onDismiss={() => setShowSuggestions(false)}
+                />
+              )}
+            </React.Fragment>
           ))
         ) : (
           <div className="text-center py-10">
@@ -598,6 +508,17 @@ const Feed = () => {
           </div>
         )}
       </div>
+
+      {/* Comments Modal */}
+      <CommentsModal
+        isOpen={commentsModalOpen}
+        onClose={() => {
+          setCommentsModalOpen(false);
+          setSelectedPostId(null);
+        }}
+        postId={selectedPostId || ''}
+        currentUserId={session?.user?.id}
+      />
     </div>
   );
 };

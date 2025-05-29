@@ -8,7 +8,7 @@ export interface Notification {
   id: string;
   user_id: string;
   actor_id: string | null;
-  type: 'like' | 'comment' | 'follow' | 'message';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'friend_request' | 'friend_request_accepted' | 'repost';
   entity_id: string | null;
   entity_type: string | null;
   read: boolean;
@@ -181,6 +181,12 @@ export function getNotificationText(notification: Notification): string {
       return `${actorName} started following you`;
     case 'message':
       return `${actorName} sent you a message`;
+    case 'friend_request':
+      return `${actorName} sent you a friend request`;
+    case 'friend_request_accepted':
+      return `${actorName} accepted your friend request`;
+    case 'repost':
+      return `${actorName} reposted your post`;
     default:
       return 'You have a new notification';
   }
@@ -188,21 +194,40 @@ export function getNotificationText(notification: Notification): string {
 
 // Helper function to handle navigation based on notification type
 export function handleNotificationClick(notification: Notification, navigate: (path: string) => void) {
-  if (!notification.entity_id) return;
-
   switch (notification.type) {
     case 'like':
     case 'comment':
-      if (notification.entity_type === 'post') {
-        navigate(`/post/${notification.entity_id}`);
+    case 'repost':
+      if (notification.entity_id) {
+        if (notification.entity_type === 'post') {
+          navigate(`/post/${notification.entity_id}`);
+        } else if (notification.entity_type === 'comment') {
+          // For comment likes, we need to get the post_id from the comment
+          // For now, just navigate to the feed - we could enhance this later
+          navigate('/feed');
+        } else {
+          // Fallback for old notifications without entity_type
+          navigate(`/post/${notification.entity_id}`);
+        }
       }
       break;
     case 'follow':
-      navigate(`/profile/${notification.actor_id}`);
+      if (notification.actor_id) {
+        navigate(`/profile/${notification.actor_id}`);
+      }
       break;
     case 'message':
-      if (notification.entity_type === 'conversation') {
+      if (notification.entity_id && notification.entity_type === 'conversation') {
         navigate(`/chats/${notification.entity_id}`);
+      } else if (notification.actor_id) {
+        // Fallback to direct message with the actor
+        navigate(`/chats/user/${notification.actor_id}`);
+      }
+      break;
+    case 'friend_request':
+    case 'friend_request_accepted':
+      if (notification.actor_id) {
+        navigate(`/profile/${notification.actor_id}`);
       }
       break;
     default:

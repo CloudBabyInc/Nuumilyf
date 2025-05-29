@@ -5,7 +5,6 @@ import Avatar from './Avatar';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import CommentModal from '@/components/comments/CommentModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,8 +87,7 @@ const Post = ({
   const [isRepostAnimating, setIsRepostAnimating] = useState(false);
   const [isShareAnimating, setIsShareAnimating] = useState(false);
 
-  // Comment modal state
-  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+
 
   // Post menu state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -342,7 +340,6 @@ const Post = ({
 
         <motion.button
           onClick={() => {
-            setIsCommentModalOpen(true);
             setIsCommentAnimating(true);
             onComment?.();
             setTimeout(() => setIsCommentAnimating(false), 500);
@@ -413,18 +410,7 @@ const Post = ({
         </motion.button>
       </div>
 
-      {/* Comment Modal */}
-      <CommentModal
-        isOpen={isCommentModalOpen}
-        onClose={() => setIsCommentModalOpen(false)}
-        postId={id}
-        postTitle={content.length > 30 ? `${content.substring(0, 30)}...` : content}
-        currentUser={currentUser}
-        postAuthor={{
-          id: author.id,
-          username: author.username
-        }}
-      />
+
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

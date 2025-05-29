@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Smile, Paperclip, Send, Image, Mic, Loader2, X, Play, Pause, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import VoiceAmbienceRecorder from './VoiceAmbienceRecorder';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -23,7 +22,6 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [frequencyData, setFrequencyData] = useState<Uint8Array>(new Uint8Array(128));
-  const [showAmbienceRecorder, setShowAmbienceRecorder] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -508,10 +506,10 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
               }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              <div className="text-white/90 text-sm font-light tracking-wider mb-2">
+              <div className="text-black/90 dark:text-white/90 text-sm font-light tracking-wider mb-2">
                 Recording
               </div>
-              <div className="text-white/70 font-mono text-lg">
+              <div className="text-black/70 dark:text-white/70 font-mono text-lg">
                 {formatTime(recordingTime)}
               </div>
             </motion.div>
@@ -524,7 +522,7 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
               }}
               transition={{ duration: 3, repeat: Infinity }}
             >
-              <div className="text-white/60 text-xs font-light tracking-widest">
+              <div className="text-black/60 dark:text-white/60 text-xs font-light tracking-widest">
                 TAP ANYWHERE TO STOP
               </div>
             </motion.div>
@@ -674,7 +672,10 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
             ) : (
               <motion.button
                 className="ml-2 p-2 rounded-full bg-nuumi-pink text-white hover:bg-nuumi-pink/90 transition-colors select-none"
-                onClick={() => setShowAmbienceRecorder(true)}
+                onMouseDown={handleMicMouseDown}
+                onMouseUp={handleMicMouseUp}
+                onTouchStart={handleMicMouseDown}
+                onTouchEnd={handleMicMouseUp}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -684,18 +685,6 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Voice Ambience Recorder */}
-      <VoiceAmbienceRecorder
-        isOpen={showAmbienceRecorder}
-        onClose={() => setShowAmbienceRecorder(false)}
-        onSendVoiceMessage={async (audioBlob: Blob, duration: number) => {
-          if (onSendVoiceMessage) {
-            await onSendVoiceMessage(audioBlob, duration);
-          }
-          setShowAmbienceRecorder(false);
-        }}
-      />
     </motion.div>
   );
 };

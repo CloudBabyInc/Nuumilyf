@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -70,6 +71,7 @@ const NotificationCenter = ({ className }: NotificationCenterProps) => {
   };
 
   const handleOpen = () => {
+    console.log('Notification bell clicked, user:', user);
     if (user) {
       setIsOpen(true);
       fetchNotifications();
@@ -132,47 +134,104 @@ const NotificationCenter = ({ className }: NotificationCenterProps) => {
       <button
         onClick={handleOpen}
         className={cn(
-          "relative action-button",
+          "relative p-2 rounded-full hover:bg-muted transition-colors",
           className
         )}
       >
         <Bell className="h-5 w-5" />
 
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-nuumi-pink text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-bounce-subtle">
+          <span className="absolute -top-1 -right-1 bg-nuumi-pink text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
             {unreadCount}
           </span>
         )}
       </button>
 
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 animate-fade-in">
-          <div className="bg-card rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col animate-slide-up">
-            <div className="flex justify-between items-center p-4 border-b border-border">
-              <h2 className="text-lg font-semibold">Notifications</h2>
-
-              <div className="flex space-x-2">
+      {isOpen && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={handleClose}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              width: '100%',
+              maxWidth: '448px',
+              height: '600px',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '16px',
+                borderBottom: '1px solid #e5e7eb'
+              }}
+            >
+              <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                Notifications
+              </h2>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllRead}
-                    className="text-xs text-nuumi-pink hover:text-nuumi-pink/80"
+                    style={{
+                      fontSize: '12px',
+                      color: '#ec4899',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px 8px'
+                    }}
                   >
                     Mark all as read
                   </button>
                 )}
-
                 <button
                   onClick={handleClose}
-                  className="text-muted-foreground hover:text-foreground"
+                  style={{
+                    color: '#6b7280',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px 8px'
+                  }}
                 >
                   Close
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto elastic-scroll">
+            {/* Content */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                backgroundColor: 'white'
+              }}
+            >
               {isLoading ? (
-                <div className="p-4 text-center text-muted-foreground">
+                <div style={{ padding: '16px', textAlign: 'center', color: '#6b7280' }}>
                   Loading notifications...
                 </div>
               ) : notifications.length > 0 ? (
@@ -184,13 +243,14 @@ const NotificationCenter = ({ className }: NotificationCenterProps) => {
                   />
                 ))
               ) : (
-                <div className="p-8 text-center text-muted-foreground">
+                <div style={{ padding: '32px', textAlign: 'center', color: '#6b7280' }}>
                   No notifications yet
                 </div>
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

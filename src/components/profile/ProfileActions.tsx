@@ -1,18 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { PenSquare, Link as LinkIcon, MessageCircle } from 'lucide-react';
+import { PenSquare, UserPlus, MessageCircle, Clock, Check, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useFriendRequests, useFriendshipStatus } from '@/hooks/useFriendRequests';
 
 interface ProfileActionsProps {
   isCurrentUser?: boolean;
   onEditProfile?: () => void;
-  onFollow?: () => void;
   onMessage?: () => void;
-  isFollowing?: boolean;
-  followersCount?: number;
   userId?: string;
   className?: string;
   editProfileButton?: React.ReactNode;
@@ -21,151 +18,48 @@ interface ProfileActionsProps {
 const ProfileActions = ({
   isCurrentUser = true,
   onEditProfile,
-  onFollow,
   onMessage,
-  isFollowing = false,
   className,
   editProfileButton,
   userId
 }: ProfileActionsProps) => {
   const navigate = useNavigate();
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(isFollowing);
+  const { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, loadingStates } = useFriendRequests();
+  const { data: friendshipStatus, isLoading: statusLoading } = useFriendshipStatus(userId);
 
-  // Update the connected state when the isFollowing prop changes
-  useEffect(() => {
-    setIsConnected(isFollowing);
-  }, [isFollowing]);
-
-  const handleConnectClick = async () => {
+  const handleFriendAction = async () => {
     if (!userId) {
-      console.error('No userId provided');
       toast.error('User ID not found');
       return;
     }
 
-    const { data: session, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) {
-      console.error('Session error:', sessionError);
-      toast.error('Authentication error');
-      return;
-    }
-
-    if (!session.session) {
-      toast.error('Please sign in to connect with other users');
-      navigate('/auth');
-      return;
-    }
-
-    console.log('Attempting to connect:', {
-      currentUserId: session.session.user.id,
-      targetUserId: userId,
-      isConnected: isConnected
-    });
-
-    setIsConnecting(true);
-    const loadingToast = toast.loading(isConnected ? 'Disconnecting...' : 'Connecting...');
+    if (!friendshipStatus) return;
 
     try {
-      if (isConnected) {
-        // First check if the follow relationship exists
-        const { data: existingFollow, error: checkError } = await supabase
-          .from('follows')
-          .select('id')
-          .eq('follower_id', session.session.user.id)
-          .eq('following_id', userId)
-          .single();
-
-        if (checkError && checkError.code !== 'PGRST116') {
-          // PGRST116 means not found, which is expected if not following
-          throw checkError;
-        }
-
-        if (!existingFollow) {
-          // Already not following, just update UI
-          setIsConnected(false);
-          toast.dismiss(loadingToast);
-          return;
-        }
-
-        // Delete the follow relationship by ID for more precision
-        const { error } = await supabase
-          .from('follows')
-          .delete()
-          .eq('id', existingFollow.id);
-
-        if (error) throw error;
-
-        setIsConnected(false);
-        toast.dismiss(loadingToast);
-        toast.success('Successfully disconnected');
-
-        if (onFollow) onFollow();
-      } else {
-        // Connect logic - first check if the connection already exists
-        const { data: existingFollow, error: checkError } = await supabase
-          .from('follows')
-          .select('id')
-          .eq('follower_id', session.session.user.id)
-          .eq('following_id', userId)
-          .maybeSingle();
-
-        if (checkError && checkError.code !== 'PGRST116') {
-          throw checkError;
-        }
-
-        // Only insert if no existing connection
-        if (existingFollow) {
-          // Already following, just update UI
-          setIsConnected(true);
-          toast.dismiss(loadingToast);
-          return;
-        }
-
-        // Insert new follow relationship
-        const { error } = await supabase
-          .from('follows')
-          .insert({
-            follower_id: session.session.user.id,
-            following_id: userId
-          });
-
-        if (error) throw error;
-
-        setIsConnected(true);
-        toast.dismiss(loadingToast);
-        toast.success('Successfully connected');
-
-        if (onFollow) onFollow();
+      switch (friendshipStatus.status) {
+        case 'none':
+          await sendFriendRequest(userId);
+          break;
+        case 'request_received':
+          if (friendshipStatus.request_id) {
+            await acceptFriendRequest(friendshipStatus.request_id);
+          }
+          break;
+        default:
+          break;
       }
-    } catch (error: any) {
-      console.error('Error toggling connection:', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        userId: userId,
-        sessionUserId: session.session?.user?.id
-      });
-      toast.dismiss(loadingToast);
+    } catch (error) {
+      console.error('Error handling friend action:', error);
+    }
+  };
 
-      // More specific error message
-      if (error.code === '23505') {
-        // Unique constraint violation - already following
-        toast.error('You are already connected with this user');
-        // Refresh the UI state to be consistent
-        setIsConnected(true);
-      } else if (error.code === '23503') {
-        // Foreign key violation
-        toast.error('User not found');
-      } else if (error.message) {
-        toast.error(`Connection failed: ${error.message}`);
-      } else {
-        toast.error('Failed to update connection status');
-      }
-    } finally {
-      setIsConnecting(false);
+  const handleRejectRequest = async () => {
+    if (!friendshipStatus?.request_id) return;
+
+    try {
+      await rejectFriendRequest(friendshipStatus.request_id);
+    } catch (error) {
+      console.error('Error rejecting friend request:', error);
     }
   };
 
@@ -193,28 +87,94 @@ const ProfileActions = ({
           </button>
         )
       ) : (
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={handleConnectClick}
-            disabled={isConnecting}
-            className={cn(
-              "flex-1 rounded-full py-2.5 font-medium transition-all flex items-center justify-center",
-              isConnected
-                ? "border border-nuumi-pink text-nuumi-pink hover:bg-nuumi-pink/10"
-                : "bg-nuumi-pink text-white hover:bg-nuumi-pink/90"
-            )}
-          >
-            <LinkIcon size={18} className="mr-2" />
-            {isConnecting ? 'Processing...' : isConnected ? 'Connected' : 'Connect'}
-          </button>
-
-          <button
-            onClick={handleMessageClick}
-            className="flex-1 bg-secondary text-foreground rounded-full py-2.5 font-medium transition-all hover:bg-secondary/80 flex items-center justify-center"
-          >
-            <MessageCircle size={18} className="mr-2" />
-            Message
-          </button>
+        <div className="space-y-3 mb-6">
+          {statusLoading ? (
+            <div className="flex gap-4">
+              <div className="flex-1 h-10 bg-muted rounded-full animate-pulse" />
+              <div className="flex-1 h-10 bg-muted rounded-full animate-pulse" />
+            </div>
+          ) : friendshipStatus?.status === 'friends' ? (
+            // Already friends
+            <div className="flex gap-4">
+              <button
+                className="flex-1 border border-nuumi-pink text-nuumi-pink rounded-full py-2.5 font-medium transition-all hover:bg-nuumi-pink/10 flex items-center justify-center"
+                disabled
+              >
+                <UserCheck size={18} className="mr-2" />
+                Friends
+              </button>
+              <button
+                onClick={handleMessageClick}
+                className="flex-1 bg-nuumi-pink text-white rounded-full py-2.5 font-medium transition-all hover:bg-nuumi-pink/90 flex items-center justify-center"
+              >
+                <MessageCircle size={18} className="mr-2" />
+                Message
+              </button>
+            </div>
+          ) : friendshipStatus?.status === 'request_sent' ? (
+            // Request sent
+            <button
+              className="w-full border border-muted-foreground text-muted-foreground rounded-full py-2.5 font-medium flex items-center justify-center"
+              disabled
+            >
+              <Clock size={18} className="mr-2" />
+              Request Sent
+            </button>
+          ) : friendshipStatus?.status === 'request_received' ? (
+            // Request received - show accept/reject buttons
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleFriendAction}
+                  disabled={loadingStates[friendshipStatus.request_id || '']}
+                  className="flex-1 bg-nuumi-pink text-white rounded-full py-2.5 font-medium transition-all hover:bg-nuumi-pink/90 flex items-center justify-center"
+                >
+                  {loadingStates[friendshipStatus.request_id || ''] ? (
+                    <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Check size={18} className="mr-2" />
+                      Accept Request
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleRejectRequest}
+                  disabled={loadingStates[friendshipStatus.request_id || '']}
+                  className="flex-1 border border-muted-foreground text-muted-foreground rounded-full py-2.5 font-medium transition-all hover:bg-muted/10 flex items-center justify-center"
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          ) : (
+            // No relationship - show send request button
+            <div className="flex gap-4">
+              <button
+                onClick={handleFriendAction}
+                disabled={loadingStates[userId || '']}
+                className="flex-1 bg-nuumi-pink text-white rounded-full py-2.5 font-medium transition-all hover:bg-nuumi-pink/90 flex items-center justify-center"
+              >
+                {loadingStates[userId || ''] ? (
+                  <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <UserPlus size={18} className="mr-2" />
+                    Send Request
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleMessageClick}
+                disabled
+                title="Connect first to send messages"
+                className="flex-1 bg-muted text-muted-foreground rounded-full py-2.5 font-medium flex items-center justify-center cursor-not-allowed"
+              >
+                <MessageCircle size={18} className="mr-2" />
+                Message
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
