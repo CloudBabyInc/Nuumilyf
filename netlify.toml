@@ -1,10 +1,11 @@
 [build]
   publish = "dist"
-  command = "npm ci --legacy-peer-deps && npm run build"
+  command = "npm ci --legacy-peer-deps --omit=optional && npm run build"
 
 [build.environment]
   NODE_VERSION = "18.19.0"
   NPM_VERSION = "10.2.3"
+  NPM_FLAGS = "--legacy-peer-deps --omit=optional"
 
 # Proxy API requests to our Python backend
 [[redirects]]
