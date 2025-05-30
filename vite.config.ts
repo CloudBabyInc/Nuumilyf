@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import path from "path";
 
 // https://vitejs.dev/config/
@@ -17,21 +17,19 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    target: 'esnext',
+    minify: 'esbuild',
     rollupOptions: {
-      external: [
-        '@rollup/rollup-linux-x64-gnu',
-        '@rollup/rollup-darwin-x64',
-        '@rollup/rollup-darwin-arm64',
-        '@rollup/rollup-win32-x64-msvc',
-      ],
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+          utils: ['date-fns', 'clsx', 'framer-motion']
+        }
+      }
     },
   },
   optimizeDeps: {
-    exclude: [
-      '@rollup/rollup-linux-x64-gnu',
-      '@rollup/rollup-darwin-x64',
-      '@rollup/rollup-darwin-arm64',
-      '@rollup/rollup-win32-x64-msvc',
-    ],
+    include: ['react', 'react-dom', 'framer-motion'],
   },
 }));
