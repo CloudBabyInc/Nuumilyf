@@ -449,7 +449,7 @@ const ConversationPage = () => {
       // Get messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
-        .select('id, content, created_at, sender_id, is_deleted, is_edited, original_content, message_type, audio_url, audio_duration')
+        .select('id, content, created_at, sender_id, is_deleted, is_edited, original_content, message_type, audio_url, audio_duration, attachment_url, file_name, file_size')
         .eq('conversation_id', conversationId)
         .order('created_at');
 
@@ -470,7 +470,10 @@ const ConversationPage = () => {
           isEdited: msg.is_edited || false,
           messageType: msg.message_type || 'text',
           audioUrl: msg.audio_url,
-          audioDuration: msg.audio_duration
+          audioDuration: msg.audio_duration,
+          attachmentUrl: msg.attachment_url,
+          fileName: msg.file_name,
+          fileSize: msg.file_size
         })));
       } else {
         // No messages yet - this is normal for new conversations
@@ -532,7 +535,10 @@ const ConversationPage = () => {
               isNew: true,
               messageType: newMessage.message_type || 'text',
               audioUrl: newMessage.audio_url,
-              audioDuration: newMessage.audio_duration
+              audioDuration: newMessage.audio_duration,
+              attachmentUrl: newMessage.attachment_url,
+              fileName: newMessage.file_name,
+              fileSize: newMessage.file_size
             }
           ]);
         }
@@ -754,6 +760,137 @@ const ConversationPage = () => {
     }
   };
 
+  const handleSendAttachment = async (file: File, type: 'image' | 'document') => {
+    if (!session || !conversationId) {
+      console.error('Missing session or conversationId');
+      return;
+    }
+
+    console.log('Starting attachment send:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      attachmentType: type,
+      conversationId,
+      userId: session.user.id
+    });
+
+    // Generate a temporary ID for optimistic UI update
+    const tempId = `temp-${Date.now()}`;
+    const now = new Date().toISOString();
+
+    try {
+      // Determine file extension and storage bucket
+      const fileExt = file.name.split('.').pop() || 'bin';
+      const uniqueId = nanoid();
+      const fileName = `${uniqueId}.${fileExt}`;
+      const filePath = `${session.user.id}/${fileName}`;
+      const bucketName = type === 'image' ? 'chat-images' : 'chat-documents';
+
+      console.log('Uploading to bucket:', bucketName, 'path:', filePath);
+
+      // Create preview URL for images
+      const tempUrl = type === 'image' ? URL.createObjectURL(file) : undefined;
+
+      // Add attachment message to UI immediately (optimistic update)
+      setMessages(current => [
+        ...current,
+        {
+          id: tempId,
+          content: type === 'image' ? 'Image' : file.name,
+          timestamp: now,
+          senderId: session.user.id,
+          status: 'sent',
+          messageType: type,
+          attachmentUrl: tempUrl,
+          fileName: file.name,
+          fileSize: file.size
+        }
+      ]);
+
+      // Upload to Supabase storage
+      console.log('Starting upload to Supabase storage...');
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Error uploading attachment:', uploadError);
+        toast.error(`Failed to upload ${type}: ${uploadError.message}`);
+        setMessages(current => current.filter(msg => msg.id !== tempId));
+        if (tempUrl) URL.revokeObjectURL(tempUrl);
+        return;
+      }
+
+      console.log('Upload successful:', uploadData);
+
+      // Get the public URL
+      const { data: publicURLData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+
+      if (!publicURLData || !publicURLData.publicUrl) {
+        console.error('Failed to get public URL');
+        toast.error(`Failed to get ${type} URL`);
+        setMessages(current => current.filter(msg => msg.id !== tempId));
+        if (tempUrl) URL.revokeObjectURL(tempUrl);
+        return;
+      }
+
+      const publicUrl = `${publicURLData.publicUrl}?t=${Date.now()}`;
+      console.log('Public URL:', publicUrl);
+
+      // Save message to database
+      console.log('Saving to database...');
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          sender_id: session.user.id,
+          content: type === 'image' ? 'Image' : file.name,
+          message_type: type,
+          attachment_url: publicUrl,
+          file_name: file.name,
+          file_size: file.size
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error saving attachment to database:', error);
+        toast.error(`Failed to send ${type}: ${error.message}`);
+        setMessages(current => current.filter(msg => msg.id !== tempId));
+        if (tempUrl) URL.revokeObjectURL(tempUrl);
+      } else {
+        console.log('Attachment saved successfully:', data);
+        // Update the message with real data
+        setMessages(current =>
+          current.map(msg =>
+            msg.id === tempId
+              ? {
+                  ...msg,
+                  id: data.id,
+                  status: 'delivered',
+                  attachmentUrl: publicUrl
+                }
+              : msg
+          )
+        );
+
+        // Clean up temporary URL
+        if (tempUrl) URL.revokeObjectURL(tempUrl);
+        toast.success(`${type === 'image' ? 'Image' : 'Document'} sent!`);
+      }
+    } catch (err) {
+      console.error('Error sending attachment:', err);
+      toast.error(`Failed to send ${type}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setMessages(current => current.filter(msg => msg.id !== tempId));
+    }
+  };
+
   if (!session) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -785,6 +922,7 @@ const ConversationPage = () => {
           <MessageInput
             onSendMessage={handleSendMessage}
             onSendVoiceMessage={handleSendVoiceMessage}
+            onSendAttachment={handleSendAttachment}
           />
         </>
       )}

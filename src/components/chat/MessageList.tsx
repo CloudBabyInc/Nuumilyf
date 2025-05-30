@@ -13,9 +13,12 @@ interface Message {
   isNew?: boolean;
   isDeleted?: boolean;
   isEdited?: boolean;
-  messageType?: 'text' | 'voice';
+  messageType?: 'text' | 'voice' | 'image' | 'document';
   audioUrl?: string;
   audioDuration?: number;
+  attachmentUrl?: string;
+  fileName?: string;
+  fileSize?: number;
 }
 
 interface MessageListProps {
@@ -163,6 +166,9 @@ const MessageList = ({
                     messageType={message.messageType}
                     audioUrl={message.audioUrl}
                     audioDuration={message.audioDuration}
+                    attachmentUrl={message.attachmentUrl}
+                    fileName={message.fileName}
+                    fileSize={message.fileSize}
                     onEdit={onEditMessage}
                     onUnsend={onUnsendMessage}
                     onReply={onReplyToMessage}

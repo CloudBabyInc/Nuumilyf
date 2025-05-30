@@ -3,15 +3,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Smile, Paperclip, Send, Image, Mic, Loader2, X, Play, Pause, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import AttachmentModal from './AttachmentModal';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
   onSendVoiceMessage?: (audioBlob: Blob, duration: number) => void;
+  onSendAttachment?: (file: File, type: 'image' | 'document') => void;
   isLoading?: boolean;
   disabled?: boolean;
 }
 
-const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, disabled = false }: MessageInputProps) => {
+const MessageInput = ({ onSendMessage, onSendVoiceMessage, onSendAttachment, isLoading = false, disabled = false }: MessageInputProps) => {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -22,6 +24,8 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [frequencyData, setFrequencyData] = useState<Uint8Array>(new Uint8Array(128));
+  const [showAttachmentModal, setShowAttachmentModal] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -321,6 +325,20 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
     }
   };
 
+  const handleAttachmentSend = async (file: File, type: 'image' | 'document') => {
+    if (!onSendAttachment) return;
+
+    setIsUploadingAttachment(true);
+    try {
+      await onSendAttachment(file, type);
+      setShowAttachmentModal(false);
+    } catch (error) {
+      console.error('Error sending attachment:', error);
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -608,16 +626,20 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
 
             <div className="flex space-x-1 mr-2">
               <motion.button
+                onClick={() => setShowAttachmentModal(true)}
                 className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
+                disabled={disabled || isLoading}
               >
                 <Paperclip size={20} />
               </motion.button>
               <motion.button
+                onClick={() => setShowAttachmentModal(true)}
                 className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
+                disabled={disabled || isLoading}
               >
                 <Image size={20} />
               </motion.button>
@@ -685,6 +707,14 @@ const MessageInput = ({ onSendMessage, onSendVoiceMessage, isLoading = false, di
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Attachment Modal */}
+      <AttachmentModal
+        isOpen={showAttachmentModal}
+        onClose={() => setShowAttachmentModal(false)}
+        onSendAttachment={handleAttachmentSend}
+        isLoading={isUploadingAttachment}
+      />
     </motion.div>
   );
 };
