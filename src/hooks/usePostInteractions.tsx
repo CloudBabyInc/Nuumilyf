@@ -131,10 +131,13 @@ export function usePostInteractions(): PostInteractionActions {
       return data;
     },
     onSuccess: (data, { postId }) => {
+      console.log('Comment added successfully, data:', data);
+
       // Update comments count in all relevant queries
       const updatePost = (oldData: any) => {
         if (!oldData) return oldData;
-        return oldData.map((post: any) =>
+        console.log('Updating posts cache, old data:', oldData);
+        const updatedData = oldData.map((post: any) =>
           post.id === postId
             ? {
                 ...post,
@@ -142,6 +145,8 @@ export function usePostInteractions(): PostInteractionActions {
               }
             : post
         );
+        console.log('Updated posts data:', updatedData);
+        return updatedData;
       };
 
       queryClient.setQueryData(['posts'], updatePost);
@@ -154,9 +159,10 @@ export function usePostInteractions(): PostInteractionActions {
         };
       });
 
-      // Invalidate comments query to refresh the comments list
+      // Invalidate both comments and posts queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
-      
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+
       toast.success('Comment added successfully');
     },
     onError: (error: any) => {

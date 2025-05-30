@@ -22,7 +22,7 @@ interface ConversationPreview {
     isOnline: boolean;
   }[];
 }
-
+  
 const ChatList = ({ currentUserId }: ChatListProps) => {
   const [conversations, setConversations] = useState<ConversationPreview[]>([]);
   const [loading, setLoading] = useState(true);
