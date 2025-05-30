@@ -16,20 +16,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    target: 'esnext',
-    minify: 'esbuild',
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-          utils: ['date-fns', 'clsx', 'framer-motion']
-        }
-      }
-    },
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'framer-motion'],
-  },
 }));
